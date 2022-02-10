@@ -10,7 +10,7 @@
 [![Image Security Scan](https://github.com/bcgov/PSP/actions/workflows/image-scan-analysis.yml/badge.svg)](https://github.com/bcgov/PSP/actions/workflows/image-scan-analysis.yml)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bcgov/psp/master)
 
-# PIMS
+# PSP
 
 Property Inventory Management System
 
