@@ -1,6 +1,7 @@
+import { LinkButton } from 'components/common/buttons';
 import { ILeaseProperty } from 'interfaces';
 import { useState } from 'react';
-import { Button, Col, Row } from 'react-bootstrap';
+import { Col, Row } from 'react-bootstrap';
 import styled from 'styled-components';
 
 const PropertyRow = styled(Row)`
@@ -32,16 +33,20 @@ const LeaseProperties: React.FunctionComponent<ILeasePropertiesProps> = props =>
           <strong className="pr-2">Address:</strong>
           {property.address}
         </Col>
-        <Col md="auto">
-          <div>
-            <strong className="pr-2">PID:</strong> {property.pid || 'N.A'}
-          </div>
-        </Col>
-        <Col md="auto">
-          <div>
-            <strong className="pr-2">PIN:</strong> {property.pin || 'N.A'}
-          </div>
-        </Col>
+        {property.pid && (
+          <Col md="auto">
+            <div>
+              <strong className="pr-2">PID:</strong> {property.pid}
+            </div>
+          </Col>
+        )}
+        {property.pin && (
+          <Col md="auto">
+            <div>
+              <strong className="pr-2">PIN:</strong> {property.pin}
+            </div>
+          </Col>
+        )}
       </PropertyRow>
     );
   });
@@ -51,9 +56,9 @@ const LeaseProperties: React.FunctionComponent<ILeasePropertiesProps> = props =>
       <Row key="showMoreKey">
         <Col />
         <Col md="auto">
-          <Button variant="link" onClick={() => setExpanded(!isExpanded)}>
+          <LinkButton onClick={() => setExpanded(!isExpanded)}>
             {isExpanded ? 'hide' : `[+${properties.length - rowItems.length} more...]`}
-          </Button>
+          </LinkButton>
         </Col>
       </Row>,
     );

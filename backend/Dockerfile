@@ -1,10 +1,10 @@
 ARG BUILD_CONFIGURATION=Release
-FROM mcr.microsoft.com/dotnet/aspnet:5.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /app
 EXPOSE 443 8080
 
 # Copy csproj and restore as distinct layers
-FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
 COPY *.sln .
 COPY Directory.Build.props .
@@ -13,6 +13,7 @@ COPY entities/*.csproj entities/
 COPY tests/core/*.csproj tests/core/
 COPY tests/unit/api/*.csproj tests/unit/api/
 COPY tests/unit/dal/*.csproj tests/unit/dal/
+COPY tests/unit/mockdal/*.csproj tests/unit/mockdal/
 COPY dal/*.csproj dal/
 COPY dal.keycloak/*.csproj dal.keycloak/
 COPY keycloak/*.csproj keycloak/

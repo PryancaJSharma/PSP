@@ -2,7 +2,6 @@ using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pims.Api.Areas.Keycloak.Controllers;
-using Pims.Core.Comparers;
 using Pims.Core.Test;
 using Pims.Dal.Keycloak;
 using Pims.Dal.Security;
@@ -11,9 +10,9 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Xunit;
-using AdminModels = Pims.Api.Areas.Admin.Models.User;
 using Entity = Pims.Dal.Entities;
-using Model = Pims.Api.Areas.Keycloak.Models.User;
+using Model = Pims.Api.Models.Concepts;
+using FluentAssertions;
 
 namespace PimsApi.Test.Keycloak.Controllers
 {
@@ -33,83 +32,6 @@ namespace PimsApi.Test.Keycloak.Controllers
         }
         #endregion
 
-        #region Tests
-        #region SyncUserAsync
-        [Fact]
-        public async void SyncUserAsync_Success()
-        {
-            // Arrange
-            var helper = new TestHelper();
-            var controller = helper.CreateController<UserController>(Permissions.AdminUsers);
-
-            var mapper = helper.GetService<IMapper>();
-            var service = helper.GetService<Mock<IPimsKeycloakService>>();
-            var user = EntityHelper.CreateUser("test");
-            service.Setup(m => m.SyncUserAsync(It.IsAny<Guid>())).Returns(Task.FromResult(user));
-
-            // Act
-            var result = await controller.SyncUserAsync(user.GuidIdentifierValue.Value);
-
-            // Assert
-            var actionResult = Assert.IsType<JsonResult>(result);
-            Assert.Null(actionResult.StatusCode);
-            var data = Assert.IsType<Model.UserModel>(actionResult.Value);
-            Assert.Equal(mapper.Map<Model.UserModel>(user), data, new DeepPropertyCompare());
-            service.Verify(m => m.SyncUserAsync(It.IsAny<Guid>()), Times.Once());
-        }
-        #endregion
-
-        #region GetUsersAsync
-        [Fact]
-        public async void GetUsersAsync_Success()
-        {
-            // Arrange
-            var helper = new TestHelper();
-            var controller = helper.CreateController<UserController>(Permissions.AdminUsers);
-
-            var mapper = helper.GetService<IMapper>();
-            var service = helper.GetService<Mock<IPimsKeycloakService>>();
-            var user = EntityHelper.CreateUser("test");
-            var users = new[] { user };
-            service.Setup(m => m.GetUsersAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>())).Returns(Task.FromResult((IEnumerable<Entity.PimsUser>)users));
-
-            // Act
-            var result = await controller.GetUsersAsync(1, 10);
-
-            // Assert
-            var actionResult = Assert.IsType<JsonResult>(result);
-            Assert.Null(actionResult.StatusCode);
-            var data = Assert.IsType<Model.UserModel[]>(actionResult.Value);
-            Assert.Equal(mapper.Map<Model.UserModel[]>(users), data, new DeepPropertyCompare());
-            service.Verify(m => m.GetUsersAsync(1, 10, It.IsAny<string>()), Times.Once());
-        }
-        #endregion
-
-        #region GetUserAsync
-        [Fact]
-        public async void GetUserAsync_Success()
-        {
-            // Arrange
-            var helper = new TestHelper();
-            var controller = helper.CreateController<UserController>(Permissions.AdminUsers);
-
-            var mapper = helper.GetService<IMapper>();
-            var service = helper.GetService<Mock<IPimsKeycloakService>>();
-            var user = EntityHelper.CreateUser("test");
-            service.Setup(m => m.GetUserAsync(It.IsAny<Guid>())).Returns(Task.FromResult(user));
-
-            // Act
-            var result = await controller.GetUserAsync(user.GuidIdentifierValue.Value);
-
-            // Assert
-            var actionResult = Assert.IsType<JsonResult>(result);
-            Assert.Null(actionResult.StatusCode);
-            var data = Assert.IsType<Model.UserModel>(actionResult.Value);
-            Assert.Equal(mapper.Map<Model.UserModel>(user), data, new DeepPropertyCompare());
-            service.Verify(m => m.GetUserAsync(It.IsAny<Guid>()), Times.Once());
-        }
-        #endregion
-
         #region UpdateUserAsync
         [Fact]
         public async void UpdateUserAsync_Success()
@@ -122,8 +44,7 @@ namespace PimsApi.Test.Keycloak.Controllers
             var service = helper.GetService<Mock<IPimsKeycloakService>>();
             var user = EntityHelper.CreateUser("test");
             service.Setup(m => m.UpdateUserAsync(It.IsAny<Entity.PimsUser>())).Returns(Task.FromResult(user));
-            var model = mapper.Map<AdminModels.UserModel>(user);
-            model.Email = "test@test.com";
+            var model = mapper.Map<Model.UserModel>(user);
 
             // Act
             var result = await controller.UpdateUserAsync(user.GuidIdentifierValue.Value, model);
@@ -131,19 +52,11 @@ namespace PimsApi.Test.Keycloak.Controllers
             // Assert
             var actionResult = Assert.IsType<JsonResult>(result);
             Assert.Null(actionResult.StatusCode);
-            var actualResult = Assert.IsType<AdminModels.UserModel>(actionResult.Value);
-            var expectedResult = mapper.Map<AdminModels.UserModel>(user);
+            var actualResult = Assert.IsType<Model.UserModel>(actionResult.Value);
+            var expectedResult = mapper.Map<Model.UserModel>(user);
             Assert.Equal(expectedResult.Id, actualResult.Id);
-            Assert.Equal(expectedResult.BusinessIdentifier, actualResult.BusinessIdentifier);
-            Assert.Equal(expectedResult.FirstName, actualResult.FirstName);
-            Assert.Equal(expectedResult.Surname, actualResult.Surname);
-            Assert.Equal(expectedResult.Email, actualResult.Email);
-            Assert.Equal(expectedResult.IsDisabled, actualResult.IsDisabled);
-            Assert.Equal(expectedResult.Organizations, actualResult.Organizations, new DeepPropertyCompare());
-            Assert.Equal(expectedResult.Roles, actualResult.Roles, new DeepPropertyCompare());
             service.Verify(m => m.UpdateUserAsync(It.IsAny<Entity.PimsUser>()), Times.Once());
         }
-        #endregion
         #endregion
     }
 }

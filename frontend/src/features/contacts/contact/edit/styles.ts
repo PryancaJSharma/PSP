@@ -1,4 +1,5 @@
-import { Button, Form as FormBase } from 'components/common/form';
+import { Button } from 'components/common/buttons/Button';
+import { Form as FormBase } from 'components/common/form';
 import { sharedFormStyles } from 'components/common/form/styles';
 import { FlexBox } from 'components/common/styles';
 import { Form as FormikForm } from 'formik';
@@ -82,4 +83,10 @@ export const ButtonGroup = styled(FlexBox)`
   gap: 2rem;
   justify-content: flex-end;
   align-items: stretch;
+`;
+
+export const TopRightCorner = styled.div`
+  position: absolute;
+  top: 2.5rem;
+  right: 2.5rem;
 `;

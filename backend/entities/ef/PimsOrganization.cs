@@ -26,6 +26,7 @@ namespace Pims.Dal.Entities
             PimsPersonOrganizations = new HashSet<PimsPersonOrganization>();
             PimsProperties = new HashSet<PimsProperty>();
             PimsPropertyOrganizations = new HashSet<PimsPropertyOrganization>();
+            PimsResearchFiles = new HashSet<PimsResearchFile>();
             PimsSecurityDepositHolders = new HashSet<PimsSecurityDepositHolder>();
             PimsSecurityDepositReturnHolders = new HashSet<PimsSecurityDepositReturnHolder>();
             PimsUserOrganizations = new HashSet<PimsUserOrganization>();
@@ -40,11 +41,9 @@ namespace Pims.Dal.Entities
         public short? RegionCode { get; set; }
         [Column("DISTRICT_CODE")]
         public short? DistrictCode { get; set; }
-        [Required]
         [Column("ORGANIZATION_TYPE_CODE")]
         [StringLength(20)]
         public string OrganizationTypeCode { get; set; }
-        [Required]
         [Column("ORG_IDENTIFIER_TYPE_CODE")]
         [StringLength(20)]
         public string OrgIdentifierTypeCode { get; set; }
@@ -140,6 +139,8 @@ namespace Pims.Dal.Entities
         public virtual ICollection<PimsProperty> PimsProperties { get; set; }
         [InverseProperty(nameof(PimsPropertyOrganization.Organization))]
         public virtual ICollection<PimsPropertyOrganization> PimsPropertyOrganizations { get; set; }
+        [InverseProperty(nameof(PimsResearchFile.RequestorOrganizationNavigation))]
+        public virtual ICollection<PimsResearchFile> PimsResearchFiles { get; set; }
         [InverseProperty(nameof(PimsSecurityDepositHolder.Organization))]
         public virtual ICollection<PimsSecurityDepositHolder> PimsSecurityDepositHolders { get; set; }
         [InverseProperty(nameof(PimsSecurityDepositReturnHolder.Organization))]

@@ -11,6 +11,7 @@ import { phoneFormatter } from 'utils/formUtils';
 import { render, RenderOptions } from 'utils/test-utils';
 
 import PersonView, { PersonViewProps } from './Person';
+import { fakeAddresses } from './utils';
 
 const fakePerson: IContactPerson = {
   id: 1,
@@ -180,13 +181,14 @@ describe('Contact PersonView component', () => {
     });
 
     var phoneValueElements = component.getAllByTestId('phone-value');
-    expect(phoneValueElements.length).toBe(4);
+    expect(phoneValueElements.length).toBe(5);
 
     // Verify that the display is in the correct order
     expect(phoneValueElements[0].textContent).toBe(phoneFormatter(workMobile.value));
     expect(phoneValueElements[1].textContent).toBe(phoneFormatter(workPhone.value));
     expect(phoneValueElements[2].textContent).toBe(phoneFormatter(personalMobile.value));
     expect(phoneValueElements[3].textContent).toBe(phoneFormatter(faxPhone.value));
+    expect(phoneValueElements[4].textContent).toBe(phoneFormatter(personalPhone.value));
   });
 
   it('Shows organization information', () => {
@@ -283,5 +285,21 @@ describe('Contact PersonView component', () => {
 
     var commentElement = component.getByTestId('contact-person-comment');
     expect(commentElement.textContent).toBe(testComment);
+  });
+
+  it('Orders address information correctly', () => {
+    const { component } = setup({
+      person: {
+        ...fakePerson,
+        addresses: fakeAddresses,
+      },
+    });
+
+    var addressElements = component.getAllByTestId('contact-person-address');
+    expect(addressElements.length).toBe(3);
+
+    expect(addressElements[0].children[0]).toHaveTextContent('Mailing address');
+    expect(addressElements[1].children[0]).toHaveTextContent('Property address');
+    expect(addressElements[2].children[0]).toHaveTextContent('Billing address');
   });
 });

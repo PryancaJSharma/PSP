@@ -2,16 +2,20 @@ import LoadingBackdrop from 'components/maps/leaflet/LoadingBackdrop/LoadingBack
 import { Claims } from 'constants/claims';
 import { IENotSupportedPage } from 'features/account/IENotSupportedPage';
 import { LogoutPage } from 'features/account/Logout';
-import { ContactListView } from 'features/contacts';
+import { AdminAccessRequestPage } from 'features/admin/access-request/AdminAccessRequestPage';
+import { ContactListPage } from 'features/contacts';
 import CreateContactContainer from 'features/contacts/contact/create/CreateContactContainer';
 import ContactViewContainer from 'features/contacts/contact/detail/Container';
 import UpdateContactContainer from 'features/contacts/contact/edit/UpdateContactContainer';
 import { AddLeaseContainer } from 'features/leases';
+import { ResearchListView } from 'features/research/list/ResearchListView';
 import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
 import AuthLayout from 'layouts/AuthLayout';
 import PublicLayout from 'layouts/PublicLayout';
 import { NotFoundPage } from 'pages/404/NotFoundPage';
 import Test from 'pages/Test.ignore';
+import { TestFileManagement } from 'pages/TestFileManagement';
+import { TestNotes } from 'pages/TestNotes';
 import React, { lazy, Suspense, useLayoutEffect } from 'react';
 import Col from 'react-bootstrap/Col';
 import { Redirect, Switch, useLocation } from 'react-router-dom';
@@ -29,9 +33,9 @@ const EditUserPage = lazy(() =>
   componentLoader(import('./features/admin/edit-user/EditUserPage'), 2),
 );
 const ManageAccessRequests = lazy(() =>
-  componentLoader(import('features/admin/access/ManageAccessRequests'), 2),
+  componentLoader(import('features/admin/access/ManageAccessRequestsPage'), 2),
 );
-const ManageUsers = lazy(() => componentLoader(import('features/admin/users/ManageUsers'), 2));
+const ManageUsers = lazy(() => componentLoader(import('features/admin/users/ManageUsersPage'), 2));
 const PropertyListView = lazy(() =>
   componentLoader(import('features/properties/list/PropertyListView'), 2),
 );
@@ -95,6 +99,7 @@ const AppRouter: React.FC = () => {
           layout={PublicLayout}
         ></AppRoute>
         <AppRoute
+          exact
           path="/test"
           title={getTitle('Test')}
           component={Test}
@@ -125,6 +130,14 @@ const AppRouter: React.FC = () => {
         ></AppRoute>
         <AppRoute
           protected
+          path="/admin/access/request/:id"
+          component={AdminAccessRequestPage}
+          layout={AuthLayout}
+          claim={Claims.ADMIN_USERS}
+          title={getTitle('Request Access')}
+        ></AppRoute>
+        <AppRoute
+          protected
           path="/mapView/:id?"
           component={MapView}
           layout={AuthLayout}
@@ -145,7 +158,7 @@ const AppRouter: React.FC = () => {
           path="/lease/list"
           component={LeaseAndLicenseListView}
           layout={AuthLayout}
-          claim={Claims.PROPERTY_VIEW}
+          claim={Claims.LEASE_VIEW}
           title={getTitle('View Lease & Licenses')}
         />
         <AppRoute
@@ -168,7 +181,7 @@ const AppRouter: React.FC = () => {
         <AppRoute
           protected
           path="/contact/list"
-          component={ContactListView}
+          component={ContactListPage}
           layout={AuthLayout}
           claim={Claims.CONTACT_VIEW}
           title={getTitle('View Contacts')}
@@ -199,11 +212,33 @@ const AppRouter: React.FC = () => {
         />
         <AppRoute
           protected
+          exact
+          path="/research/list"
+          component={ResearchListView}
+          layout={AuthLayout}
+          claim={Claims.RESEARCH_VIEW}
+          title={getTitle('View Research Files')}
+        />
+        <AppRoute
+          protected
           path="/admin/user/:key?"
           component={EditUserPage}
           layout={AuthLayout}
           claim={Claims.ADMIN_USERS}
           title={getTitle('Edit User')}
+        />
+        <AppRoute
+          path="/testFileManagement"
+          title={getTitle('Test')}
+          component={TestFileManagement}
+          layout={AuthLayout}
+        />
+        <AppRoute
+          exact
+          path="/test/notes"
+          title={getTitle('Test Notes')}
+          component={TestNotes}
+          layout={AuthLayout}
         />
         <AppRoute title="*" path="*" component={() => <Redirect to="/page-not-found" />} />
       </Switch>

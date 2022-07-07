@@ -1,18 +1,20 @@
 import { TableSelect } from 'components/common/form';
-import AddLeaseFormButtons from 'features/leases/add/AddLeaseFormButtons';
+import SaveCancelButtons from 'features/leases/SaveCancelButtons';
 import { Formik, FormikProps } from 'formik';
 import { defaultFormLease, IContactSearchResult, IFormLease } from 'interfaces';
 import * as React from 'react';
 import { Link, Prompt } from 'react-router-dom';
 import styled from 'styled-components';
 
+import { AddLeaseTenantYupSchema } from './AddLeaseTenantYupSchema';
 import AddLeaseTenantListView from './AddLeastTenantListView';
 import columns from './columns';
 import SelectedTableHeader from './SelectedTableHeader';
 import * as Styled from './styles';
+import { FormTenant } from './Tenant';
 export interface IAddLeaseTenantFormProps {
-  selectedTenants: IContactSearchResult[];
-  setSelectedTenants: (selectedTenants: IContactSearchResult[]) => void;
+  selectedTenants: FormTenant[];
+  setSelectedTenants: (selectedTenants: FormTenant[]) => void;
   onCancel: () => void;
   onSubmit: (lease: IFormLease) => Promise<void>;
   initialValues?: IFormLease;
@@ -35,6 +37,7 @@ export const AddLeaseTenantForm: React.FunctionComponent<IAddLeaseTenantFormProp
         {<Link to="/contact/list">Contacts</Link>}) before you can find them here.
       </p>
       <Formik
+        validationSchema={AddLeaseTenantYupSchema}
         onSubmit={values => onSubmit(values)}
         innerRef={formikRef}
         enableReinitialize
@@ -47,7 +50,7 @@ export const AddLeaseTenantForm: React.FunctionComponent<IAddLeaseTenantFormProp
               message="You have made changes on this form. Do you wish to leave without saving?"
             />
             <StyledFormBody>
-              <TableSelect<IContactSearchResult>
+              <TableSelect<FormTenant>
                 selectedItems={selectedTenants}
                 columns={columns}
                 field="tenants"
@@ -55,11 +58,15 @@ export const AddLeaseTenantForm: React.FunctionComponent<IAddLeaseTenantFormProp
                 selectedTableHeader={SelectedTableHeader}
               >
                 <AddLeaseTenantListView
-                  setSelectedTenants={setSelectedTenants}
-                  selectedTenants={selectedTenants}
+                  setSelectedTenants={(selected: IContactSearchResult[]) => {
+                    setSelectedTenants(selected.map(s => new FormTenant(undefined, s)));
+                  }}
+                  selectedTenants={selectedTenants.map<IContactSearchResult>(selectedTenant => {
+                    return selectedTenant.original ?? { id: selectedTenant?.id?.toString() ?? '' };
+                  })}
                 />
               </TableSelect>
-              <AddLeaseFormButtons formikProps={formikProps} onCancel={onCancel} />
+              <SaveCancelButtons formikProps={formikProps} onCancel={onCancel} />
             </StyledFormBody>
           </>
         )}

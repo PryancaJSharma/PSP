@@ -14,7 +14,7 @@ using System.Security.Claims;
 namespace Pims.Dal.Repositories
 {
     /// <summary>
-    /// RoleService class, provides a service layer to administrate users within the datasource.
+    /// RoleService class, provides a service layer to administrate roles within the datasource.
     /// </summary>
     public class RoleService : BaseRepository<PimsRole>, IRoleService
     {
@@ -34,7 +34,7 @@ namespace Pims.Dal.Repositories
 
         #region Methods
         /// <summary>
-        /// Get a page of users from the datasource.
+        /// Get a page of roles from the datasource.
         /// </summary>
         /// <param name="page"></param>
         /// <param name="quantity"></param>
@@ -47,14 +47,16 @@ namespace Pims.Dal.Repositories
             var query = this.Context.PimsRoles.AsNoTracking();
 
             if (!String.IsNullOrWhiteSpace(name))
+            {
                 query = query.Where(r => EF.Functions.Like(r.Name, $"%{name}%"));
+            }
 
             var roles = query.Skip((page - 1) * quantity).Take(quantity);
             return new Paged<PimsRole>(roles.ToArray(), page, quantity, query.Count());
         }
 
         /// <summary>
-        /// Get the user with the specified 'id'.
+        /// Get the role with the specified 'id'.
         /// </summary>
         /// <param name="key"></param>
         /// <exception type="KeyNotFoundException">Entity does not exist in the datasource.</exception>

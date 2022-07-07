@@ -10,8 +10,7 @@ import clsx from 'classnames';
 import { NavIcon } from 'components/layout';
 import { Claims, Roles } from 'constants/index';
 import noop from 'lodash/noop';
-import { useContext } from 'react';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { MdChevronLeft, MdChevronRight, MdContactMail, MdHome } from 'react-icons/md';
 import { useHistory } from 'react-router-dom';
 
@@ -36,8 +35,18 @@ export const SideNavBar = () => {
           text="Home"
           showText={expanded}
         />
-        <NavIcon onClick={noop} icon={<Source />} text="Research" showText={expanded} />
-        <NavIcon onClick={noop} icon={<RealEstateAgent />} text="Acquisition" showText={expanded} />
+        <NavIcon
+          onClick={() => setTrayPage(SidebarContextType.RESEARCH)}
+          icon={<Source />}
+          text="Research"
+          showText={expanded}
+        />
+        <NavIcon
+          onClick={() => setTrayPage(SidebarContextType.ACQUISITION)}
+          icon={<RealEstateAgent />}
+          text="Acquisition"
+          showText={expanded}
+        />
         <NavIcon
           onClick={() => setTrayPage(SidebarContextType.LEASE)}
           icon={<Fence />}
@@ -46,7 +55,7 @@ export const SideNavBar = () => {
         />
         <NavIcon onClick={noop} icon={<Stops />} text="Disposition" showText={expanded} />
         <NavIcon
-          onClick={() => history.push('/contact/list')}
+          onClick={() => setTrayPage(SidebarContextType.CONTACT)}
           icon={<MdContactMail size={24} />}
           text="Contacts"
           showText={expanded}

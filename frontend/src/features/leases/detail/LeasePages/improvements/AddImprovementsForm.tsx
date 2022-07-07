@@ -1,10 +1,11 @@
-import AddLeaseFormButtons from 'features/leases/add/AddLeaseFormButtons';
+import SaveCancelButtons from 'features/leases/SaveCancelButtons';
 import { Formik, FormikProps } from 'formik';
 import { defaultFormLease, IFormLease } from 'interfaces';
 import * as React from 'react';
 import { Prompt } from 'react-router-dom';
 import styled from 'styled-components';
 
+import { AddImprovementsYupSchema } from './AddImprovementsYupSchema';
 import { Improvements } from './Improvements';
 export interface IAddImprovementsFormProps {
   onCancel: () => void;
@@ -22,6 +23,7 @@ export const AddImprovementsForm: React.FunctionComponent<IAddImprovementsFormPr
   return (
     <>
       <Formik
+        validationSchema={AddImprovementsYupSchema}
         onSubmit={values => onSubmit(values)}
         innerRef={formikRef}
         enableReinitialize
@@ -35,7 +37,7 @@ export const AddImprovementsForm: React.FunctionComponent<IAddImprovementsFormPr
             />
             <StyledFormBody>
               <Improvements disabled={false} />
-              <AddLeaseFormButtons formikProps={formikProps} onCancel={onCancel} />
+              <SaveCancelButtons formikProps={formikProps} onCancel={onCancel} />
             </StyledFormBody>
           </>
         )}

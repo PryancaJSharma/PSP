@@ -1,16 +1,10 @@
+import { FormTenant } from 'features/leases/detail/LeasePages/tenant/Tenant';
+import { Api_LeaseTenant } from 'models/api/LeaseTenant';
+import { Api_Person } from 'models/api/Person';
+import { Api_SecurityDeposit, Api_SecurityDepositReturn } from 'models/api/SecurityDeposit';
 import { NumberFieldValue } from 'typings/NumberFieldValue';
 
-import {
-  IFormProperty,
-  IInsurance,
-  ILeaseImprovement,
-  ILeaseSecurityDeposit,
-  ILeaseSecurityDepositReturn,
-  IOrganization,
-  IPerson,
-  IProperty,
-  ITenant,
-} from '.';
+import { IFormProperty, IInsurance, ILeaseImprovement, IOrganization, IProperty } from '.';
 import { IFormLeaseTerm, ILeaseTerm } from './ILeaseTerm';
 import { IRegion } from './IRegion';
 import ITypeCode from './ITypeCode';
@@ -43,23 +37,23 @@ export interface ILease {
   amount?: number;
   renewalCount: number;
   description?: string;
-  landArea?: number;
-  areaUnit?: string;
   isResidential: boolean;
   isCommercialBuilding: boolean;
   isOtherImprovement: boolean;
   returnNotes?: string; // security deposit notes (free form text)
   documentationReference?: string;
+  hasPhysicalLicense?: boolean;
+  hasDigitalLicense?: boolean;
   tenantNotes: string[];
   insurances: IInsurance[];
-  tenants: ITenant[];
+  tenants: Api_LeaseTenant[];
   terms: ILeaseTerm[];
   properties: IProperty[];
-  persons: IPerson[];
+  persons: Api_Person[];
   organizations: IOrganization[];
   improvements: ILeaseImprovement[];
-  securityDeposits: ILeaseSecurityDeposit[];
-  securityDepositReturns: ILeaseSecurityDepositReturn[];
+  securityDeposits: Api_SecurityDeposit[];
+  securityDepositReturns: Api_SecurityDepositReturn[];
   rowVersion?: number;
 }
 
@@ -70,7 +64,6 @@ export interface IFormLease
       tfaFileNo: NumberFieldValue;
       amount: NumberFieldValue;
       renewalCount: NumberFieldValue;
-      landArea: NumberFieldValue;
       paymentReceivableType?: ITypeCode<string>;
       categoryType?: ITypeCode<string>;
       purposeType?: ITypeCode<string>;
@@ -80,6 +73,9 @@ export interface IFormLease
       region?: IRegion;
       programType?: ITypeCode<string>;
       terms: IFormLeaseTerm[];
+      tenants: FormTenant[];
+      hasPhysicalLicense?: string;
+      hasDigitalLicense?: string;
     }
   > {}
 
@@ -89,10 +85,9 @@ export interface IAddFormLease
     {
       amount: NumberFieldValue;
       renewalCount: NumberFieldValue;
-      landArea: NumberFieldValue;
       tfaFileNo: NumberFieldValue;
-      securityDeposits?: ILeaseSecurityDeposit[];
-      securityDepositReturn?: ILeaseSecurityDepositReturn[];
+      securityDeposits?: Api_SecurityDeposit[];
+      securityDepositReturn?: Api_SecurityDepositReturn[];
       paymentReceivableType?: string;
       categoryType?: string;
       purposeType?: string;
@@ -103,10 +98,13 @@ export interface IAddFormLease
       region: NumberFieldValue;
       programType?: string;
       properties: IFormProperty[];
+      hasPhysicalLicense: string;
+      hasDigitalLicense: string;
     }
   > {}
 
 export const defaultLease: ILease = {
+  tfaFileNo: undefined,
   organizations: [],
   persons: [],
   properties: [],
@@ -152,8 +150,6 @@ export const defaultFormLease: IFormLease = {
   motiName: '',
   amount: '',
   renewalCount: '',
-  landArea: '',
-  areaUnit: '',
   tenantNotes: [],
   insurances: [],
   isResidential: false,
@@ -162,6 +158,8 @@ export const defaultFormLease: IFormLease = {
   returnNotes: '',
   terms: [],
   tenants: [],
+  hasDigitalLicense: 'Unknown',
+  hasPhysicalLicense: 'Unknown',
 };
 
 export const defaultAddFormLease: IAddFormLease = {
@@ -190,8 +188,6 @@ export const defaultAddFormLease: IAddFormLease = {
   amount: '',
   renewalCount: '',
   description: '',
-  landArea: '',
-  areaUnit: '',
   isResidential: false,
   isCommercialBuilding: false,
   isOtherImprovement: false,
@@ -201,10 +197,12 @@ export const defaultAddFormLease: IAddFormLease = {
   insurances: [],
   terms: [],
   tenants: [],
-  properties: [{ pid: '', pin: '', areaUnitType: '' }],
+  properties: [{ pid: '', pin: '', areaUnitType: { id: '' } }],
   persons: [],
   organizations: [],
   improvements: [],
   securityDeposits: [],
   securityDepositReturns: [],
+  hasDigitalLicense: 'Unknown',
+  hasPhysicalLicense: 'Unknown',
 };

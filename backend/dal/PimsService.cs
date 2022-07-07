@@ -19,19 +19,22 @@ namespace Pims.Dal
         /// get - The user calling the service.
         /// </summary>
         public ClaimsPrincipal Principal { get; }
-
         /// <summary>
-        /// get - The lease term service.
+        /// get - The lease service.
         /// </summary>
-        public ILeaseTermService LeaseTermService { get { return _serviceProvider.GetService<ILeaseTermService>(); } }
+        public ILeaseService LeaseService { get { return _serviceProvider.GetService<ILeaseService>(); } }
         /// <summary>
         /// get - The lease payment service.
         /// </summary>
         public ILeasePaymentService LeasePaymentService { get { return _serviceProvider.GetService<ILeasePaymentService>(); } }
         /// <summary>
-        /// get - The lease service.
+        /// get - The lease term service.
         /// </summary>
-        public ILeaseService LeaseService { get { return _serviceProvider.GetService<ILeaseService>(); } }
+        public ILeaseTermService LeaseTermService { get { return _serviceProvider.GetService<ILeaseTermService>(); } }
+        /// <summary>
+        /// get - The lease report service.
+        /// </summary>
+        public ILeaseReportsService LeaseReportsService { get { return _serviceProvider.GetService<ILeaseReportsService>(); } }
         /// <summary>
         /// get - The security deposit service.
         /// </summary>
@@ -48,6 +51,14 @@ namespace Pims.Dal
         /// get - The organization service.
         /// </summary>
         public IOrganizationService OrganizationService { get { return _serviceProvider.GetService<IOrganizationService>(); } }
+        /// <summary>
+        /// get - The research file service.
+        /// </summary>
+        public IResearchFileService ResearchFileService { get { return _serviceProvider.GetService<IResearchFileService>(); } }
+        /// <summary>
+        /// get - The property service.
+        /// </summary>
+        public IPropertyService PropertyService { get { return _serviceProvider.GetService<IPropertyService>(); } }
         #endregion
 
         #region Constructors

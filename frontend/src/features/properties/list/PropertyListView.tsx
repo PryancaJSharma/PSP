@@ -1,11 +1,12 @@
 import './PropertyListView.scss';
 
-import { SearchToggleOption } from 'components/common/form';
+import { IconButton } from 'components/common/buttons';
 import TooltipWrapper from 'components/common/TooltipWrapper';
 import { Table } from 'components/Table';
-import { SortDirection, TableSort } from 'components/Table/TableSort';
+import { TableSort } from 'components/Table/TableSort';
 import * as API from 'constants/API';
 import { Form, Formik, FormikProps } from 'formik';
+import { useProperties } from 'hooks';
 import { useApiProperties } from 'hooks/pims-api';
 import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
 import useLookupCodeHelpers from 'hooks/useLookupCodeHelpers';
@@ -16,14 +17,14 @@ import noop from 'lodash/noop';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import Container from 'react-bootstrap/Container';
 import { FaFileAlt, FaFileExcel } from 'react-icons/fa';
-import { useProperties } from 'store/slices/properties';
+import styled from 'styled-components';
 import { generateMultiSortCriteria } from 'utils';
 import { toFilteredApiPaginateParams } from 'utils/CommonFunctions';
 
 import { PropertyFilter } from '../filter';
 import { IPropertyFilter } from '../filter/IPropertyFilter';
+import { SearchToggleOption } from '../filter/PropertySearchToggle';
 import { columns as columnDefinitions } from './columns';
-import * as Styled from './PropertyListView.styled';
 
 const defaultFilterValues: IPropertyFilter = {
   searchBy: 'pinOrPid',
@@ -48,6 +49,7 @@ const PropertyListView: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageCount, setPageCount] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
   const [sort, setSort] = useState<TableSort<IProperty>>({});
 
   const fetchIdRef = useRef(0);
@@ -106,6 +108,8 @@ const PropertyListView: React.FC = () => {
       );
       const { data } = await getPropertiesPaged(queryParams);
 
+      setTotalItems(data.total);
+
       // The server could send back total page count.
       // For now we'll just calculate it.
       if (fetchId === fetchIdRef.current && data?.items) {
@@ -144,7 +148,7 @@ const PropertyListView: React.FC = () => {
   return (
     <Container fluid className="PropertyListView">
       <Container fluid className="filter-container border-bottom">
-        <Container fluid className="px-0 map-filter-container">
+        <StyledFilterContainer fluid className="px-0">
           <PropertyFilter
             defaultFilter={defaultFilterValues}
             onChange={handleFilterChange}
@@ -152,21 +156,21 @@ const PropertyListView: React.FC = () => {
             onSorting={setSort}
             toggle={SearchToggleOption.List}
           />
-        </Container>
+        </StyledFilterContainer>
       </Container>
       <div className="ScrollContainer">
         <Container fluid className="TableToolbar px-0">
           <h3>Property Information</h3>
           <div className="menu"></div>
           <TooltipWrapper toolTipId="export-to-excel" toolTip="Export to Excel">
-            <Styled.FileIcon>
-              <FaFileExcel data-testid="excel-icon" size={36} onClick={() => fetch('excel')} />
-            </Styled.FileIcon>
+            <IconButton onClick={() => fetch('excel')}>
+              <FaFileExcel data-testid="excel-icon" size={36} />
+            </IconButton>
           </TooltipWrapper>
           <TooltipWrapper toolTipId="export-to-excel" toolTip="Export to CSV">
-            <Styled.FileIcon>
-              <FaFileAlt data-testid="csv-icon" size={36} onClick={() => fetch('csv')} />
-            </Styled.FileIcon>
+            <IconButton onClick={() => fetch('csv')}>
+              <FaFileAlt data-testid="csv-icon" size={36} />
+            </IconButton>
           </TooltipWrapper>
         </Container>
 
@@ -175,20 +179,12 @@ const PropertyListView: React.FC = () => {
           columns={columns}
           data={data || []}
           loading={data === undefined}
-          sort={sort}
+          externalSort={{ sort: sort, setSort: setSort }}
+          totalItems={totalItems}
           pageIndex={pageIndex}
           pageSize={pageSize}
           onRequestData={onRequestData}
           pageCount={pageCount}
-          onSortChange={(column: string, direction: SortDirection) => {
-            if (!!direction) {
-              setSort({ ...sort, [column]: direction });
-            } else {
-              const data: any = { ...sort };
-              delete data[column];
-              setSort(data);
-            }
-          }}
           filter={appliedFilter}
           onFilterChange={values => {
             setFilter({ ...filter, ...values });
@@ -210,3 +206,38 @@ const PropertyListView: React.FC = () => {
 };
 
 export default PropertyListView;
+
+const StyledFilterContainer = styled(Container)`
+  transition: margin 1s;
+
+  grid-area: filter;
+  background-color: $filter-background-color;
+  box-shadow: 0px 4px 5px rgba(0, 0, 0, 0.2);
+  z-index: 500;
+  .map-filter-bar {
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0;
+    .vl {
+      border-left: 6px solid rgba(96, 96, 96, 0.2);
+      height: 4rem;
+      margin-left: 1%;
+      margin-right: 1%;
+      border-width: 0.2rem;
+    }
+    .btn-primary {
+      color: white;
+      font-weight: bold;
+      height: 3.5rem;
+      width: 3.5rem;
+      min-height: unset;
+      padding: 0;
+    }
+    .form-control {
+      font-size: 1.4rem;
+    }
+  }
+  .form-group {
+    margin-bottom: 0;
+  }
+`;

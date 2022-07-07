@@ -7,6 +7,7 @@ using Moq;
 using Pims.Core.Test;
 using Pims.Dal.Entities;
 using Pims.Dal.Exceptions;
+using Pims.Dal.Repositories;
 using Pims.Dal.Security;
 using Pims.Dal.Services;
 using Xunit;
@@ -35,8 +36,8 @@ namespace Pims.Dal.Test.Services
 
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
-            var leaseRepository = helper.GetService<Mock<Repositories.ILeaseRepository>>();
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseRepository = helper.GetService<Mock<ILeaseRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
             leaseRepository.Setup(x => x.Get(It.IsAny<long>())).Returns(lease);
 
@@ -100,12 +101,38 @@ namespace Pims.Dal.Test.Services
 
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
             leaseTermRepository.Setup(x => x.GetByLeaseId(It.IsAny<long>())).Returns(lease.PimsLeaseTerms);
 
             // Act
             var term = new PimsLeaseTerm() { TermStartDate = DateTime.Now, LeaseId = lease.Id, Lease = lease };
+
+            var ex = Assert.Throws<InvalidOperationException>(() => service.AddTerm(lease.Id, 1, term));
+            ex.Message.Should().Be("A new term start and end date must not conflict with any existing terms.");
+        }
+
+        [Fact]
+        public void AddTerm_OverlappingDates_SameStartDateAsEndDate()
+        {
+            // Arrange
+            var helper = new TestHelper();
+            var user = PrincipalHelper.CreateForPermission(Permissions.LeaseEdit);
+
+            var lease = EntityHelper.CreateLease(1);
+            var date = DateTime.Now;
+            var originalTerm = new PimsLeaseTerm() { TermStartDate = date, TermExpiryDate = date.AddDays(1), LeaseId = lease.Id, Lease = lease };
+            lease.PimsLeaseTerms = new List<PimsLeaseTerm>() { originalTerm };
+            helper.CreatePimsContext(user, true).AddAndSaveChanges(lease);
+
+            var service = helper.Create<LeaseTermService>();
+            var leaseService = helper.GetService<Mock<ILeaseService>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
+            leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
+            leaseTermRepository.Setup(x => x.GetByLeaseId(It.IsAny<long>())).Returns(lease.PimsLeaseTerms);
+
+            // Act
+            var term = new PimsLeaseTerm() { TermStartDate = date.AddDays(1), LeaseId = lease.Id, Lease = lease };
 
             var ex = Assert.Throws<InvalidOperationException>(() => service.AddTerm(lease.Id, 1, term));
             ex.Message.Should().Be("A new term start and end date must not conflict with any existing terms.");
@@ -125,7 +152,7 @@ namespace Pims.Dal.Test.Services
 
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
             leaseTermRepository.Setup(x => x.GetByLeaseId(It.IsAny<long>())).Returns(lease.PimsLeaseTerms);
 
@@ -149,7 +176,7 @@ namespace Pims.Dal.Test.Services
 
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
             leaseTermRepository.Setup(x => x.GetByLeaseId(It.IsAny<long>())).Returns(lease.PimsLeaseTerms);
 
@@ -176,10 +203,10 @@ namespace Pims.Dal.Test.Services
 
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
-            var leaseRepository = helper.GetService<Mock<Repositories.ILeaseRepository>>();
+            var leaseRepository = helper.GetService<Mock<ILeaseRepository>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
             leaseRepository.Setup(x => x.Get(It.IsAny<long>())).Returns(lease);
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseTermRepository.Setup(x => x.GetById(It.IsAny<long>(), It.IsAny<bool>())).Returns(originalTerm);
 
             // Act
@@ -243,7 +270,7 @@ namespace Pims.Dal.Test.Services
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseTermRepository.Setup(x => x.GetByLeaseId(It.IsAny<long>())).Returns(lease.PimsLeaseTerms);
 
             // Act
@@ -268,7 +295,7 @@ namespace Pims.Dal.Test.Services
 
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
             leaseTermRepository.Setup(x => x.GetByLeaseId(It.IsAny<long>())).Returns(lease.PimsLeaseTerms);
             leaseTermRepository.Setup(x => x.GetById(It.IsAny<long>(), It.IsAny<bool>())).Returns(originalTerm);
@@ -296,10 +323,10 @@ namespace Pims.Dal.Test.Services
 
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
-            var leaseRepository = helper.GetService<Mock<Repositories.ILeaseRepository>>();
+            var leaseRepository = helper.GetService<Mock<ILeaseRepository>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
             leaseRepository.Setup(x => x.Get(It.IsAny<long>())).Returns(lease);
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseTermRepository.Setup(x => x.GetById(It.IsAny<long>(), It.IsAny<bool>())).Returns(originalTerm);
 
             // Act
@@ -363,7 +390,7 @@ namespace Pims.Dal.Test.Services
 
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
             leaseTermRepository.Setup(x => x.GetByLeaseId(It.IsAny<long>())).Returns(lease.PimsLeaseTerms);
             leaseTermRepository.Setup(x => x.GetById(It.IsAny<long>(), It.IsAny<bool>())).Returns(term);
@@ -389,7 +416,7 @@ namespace Pims.Dal.Test.Services
 
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
             leaseTermRepository.Setup(x => x.GetByLeaseId(It.IsAny<long>())).Returns(lease.PimsLeaseTerms);
             leaseTermRepository.Setup(x => x.GetById(It.IsAny<long>(), It.IsAny<bool>())).Returns(term);
@@ -416,7 +443,7 @@ namespace Pims.Dal.Test.Services
 
             var service = helper.Create<LeaseTermService>();
             var leaseService = helper.GetService<Mock<ILeaseService>>();
-            var leaseTermRepository = helper.GetService<Mock<Repositories.ILeaseTermRepository>>();
+            var leaseTermRepository = helper.GetService<Mock<ILeaseTermRepository>>();
             leaseService.Setup(x => x.IsRowVersionEqual(It.IsAny<long>(), It.IsAny<long>())).Returns(true);
             leaseTermRepository.Setup(x => x.GetByLeaseId(It.IsAny<long>())).Returns(lease.PimsLeaseTerms);
             leaseTermRepository.Setup(x => x.GetById(It.IsAny<long>(), It.IsAny<bool>())).Returns(term);

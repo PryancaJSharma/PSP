@@ -1,15 +1,18 @@
-using Pims.Core.Extensions;
-using Pims.Core.Test;
-using Pims.Dal.Entities.Models;
-using Pims.Dal.Exceptions;
-using Pims.Dal.Security;
-using Pims.Dal.Repositories;
-using System;
+using FluentAssertions;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+using Moq;
+using Pims.Core.Test;
+using Pims.Dal.Entities;
+using Pims.Dal.Helpers;
+using Pims.Dal.Exceptions;
+using Pims.Dal.Security;
+using Pims.Dal.Services;
+using Pims.Dal.Constants;
 using Xunit;
-using Entity = Pims.Dal.Entities;
+using Pims.Core.Extensions;
+using NetTopologySuite.Geometries;
+using Pims.Dal.Repositories;
 
 namespace Pims.Dal.Test.Services
 {
@@ -19,89 +22,201 @@ namespace Pims.Dal.Test.Services
     [ExcludeFromCodeCoverage]
     public class PropertyServiceTest
     {
-        #region Data
-        public static IEnumerable<object[]> AllPropertyFilters =>
-            new List<object[]>
-            {
-                new object[] { new PropertyFilter() { PinOrPid = "111-111-111" }, 1 },
-                new object[] { new PropertyFilter() { PinOrPid = "111" }, 2 },
-                new object[] { new PropertyFilter() { Address = "12342 Test Street" }, 5 },
-                new object[] { new PropertyFilter() { Page = 1, Quantity = 10 }, 6 },
-                new object[] { new PropertyFilter(), 6 },
-            };
-        #endregion
-
-        #region Constructors
-        public PropertyServiceTest() { }
-        #endregion
-
         #region Tests
-        #region Get Paged Properties
-        /// <summary>
-        /// User does not have 'property-view' claim.
-        /// </summary>
+        #region GetById
         [Fact]
-        public void GetPage_Properties_ArgumentNullException()
+        public void GetById_Success()
         {
             // Arrange
             var helper = new TestHelper();
             var user = PrincipalHelper.CreateForPermission(Permissions.PropertyView);
-            var service = helper.CreateRepository<PropertyService>(user);
+
+            var property = EntityHelper.CreateProperty(1);
+
+            var service = helper.Create<PropertyService>(user);
+            var repository = helper.GetService<Mock<IPropertyRepository>>();
+            repository.Setup(x => x.Get(It.IsAny<long>())).Returns(property);
+
+            var coordinateService = helper.GetService<Mock<ICoordinateTransformService>>();
+            coordinateService.Setup(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()));
 
             // Act
+            var result = service.GetById(1);
+
             // Assert
-            Assert.Throws<ArgumentNullException>(() =>
-                service.GetPage((PropertyFilter)null));
+            repository.Verify(x => x.Get(It.IsAny<long>()), Times.Once);
+            coordinateService.Verify(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()), Times.Once);
         }
 
-        /// <summary>
-        /// User does not have 'property-view' claim.
-        /// </summary>
         [Fact]
-        public void GetPage_Properties_NotAuthorized()
+        public void GetById_NoPermission()
         {
             // Arrange
             var helper = new TestHelper();
             var user = PrincipalHelper.CreateForPermission();
-            var filter = new PropertyFilter();
 
-            var service = helper.CreateRepository<PropertyService>(user);
+            var property = EntityHelper.CreateProperty(1);
 
-            // Act
+            var service = helper.Create<PropertyService>(user);
+            var repository = helper.GetService<Mock<IPropertyRepository>>();
+            repository.Setup(x => x.Get(It.IsAny<long>())).Returns(property);
+
+            var coordinateService = helper.GetService<Mock<ICoordinateTransformService>>();
+            coordinateService.Setup(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()));
+
             // Assert
-            Assert.Throws<NotAuthorizedException>(() =>
-                service.GetPage(filter));
+            Assert.Throws<NotAuthorizedException>(() => service.GetById(1));
+            repository.Verify(x => x.Get(It.IsAny<long>()), Times.Never);
+            coordinateService.Verify(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()), Times.Never);
         }
 
-        [Theory]
-        [MemberData(nameof(AllPropertyFilters))]
-        public void GetPage_Properties(PropertyFilter filter, int expectedCount)
+        #endregion
+        #region GetByPid
+        [Fact]
+        public void GetByPid_Success()
         {
             // Arrange
             var helper = new TestHelper();
             var user = PrincipalHelper.CreateForPermission(Permissions.PropertyView);
 
-            using var init = helper.InitializeDatabase(user);
+            var property = EntityHelper.CreateProperty(1);
 
-            init.CreateProperty(2);
-            init.CreateProperty(3, pin: 111);
-            init.CreateProperty(4, address: init.PimsAddresses.FirstOrDefault());
-            init.Add(new Entity.PimsProperty() { Location = new NetTopologySuite.Geometries.Point(-123.720810, 48.529338) });
-            init.CreateProperty(5, classification: init.PimsPropertyClassificationTypes.FirstOrDefault(c => c.PropertyClassificationTypeCode == "Core Operational"));
-            init.CreateProperty(111111111);
+            var service = helper.Create<PropertyService>(user);
+            var repository = helper.GetService<Mock<IPropertyRepository>>();
+            repository.Setup(x => x.GetByPid(It.IsAny<string>())).Returns(property);
 
-            init.SaveChanges();
-
-            var service = helper.CreateRepository<PropertyService>(user);
+            var coordinateService = helper.GetService<Mock<ICoordinateTransformService>>();
+            coordinateService.Setup(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()));
 
             // Act
-            var result = service.GetPage(filter);
+            var result = service.GetByPid(1.ToString());
 
             // Assert
-            Assert.NotNull(result);
-            Assert.IsAssignableFrom<IEnumerable<Entity.PimsProperty>>(result);
-            Assert.Equal(expectedCount, result.Total);
+            repository.Verify(x => x.GetByPid(It.IsAny<string>()), Times.Once);
+            coordinateService.Verify(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()), Times.Once);
         }
+
+        [Fact]
+        public void GetByPid_NoPermission()
+        {
+            // Arrange
+            var helper = new TestHelper();
+            var user = PrincipalHelper.CreateForPermission();
+
+            var property = EntityHelper.CreateProperty(1);
+
+            var service = helper.Create<PropertyService>(user);
+            var repository = helper.GetService<Mock<IPropertyRepository>>();
+            repository.Setup(x => x.GetByPid(It.IsAny<string>())).Returns(property);
+
+            var coordinateService = helper.GetService<Mock<ICoordinateTransformService>>();
+            coordinateService.Setup(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()));
+
+            // Assert
+            Assert.Throws<NotAuthorizedException>(() => service.GetByPid(1.ToString()));
+            repository.Verify(x => x.GetByPid(It.IsAny<string>()), Times.Never);
+            coordinateService.Verify(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()), Times.Never);
+        }
+
+        #endregion
+        #region Update
+        [Fact]
+        public void Update_Property_No_Reprojection_Success()
+        {
+            // Arrange
+            var helper = new TestHelper();
+            var user = PrincipalHelper.CreateForPermission(Permissions.PropertyView, Permissions.PropertyEdit);
+
+            var property = EntityHelper.CreateProperty(1);
+
+            var service = helper.Create<PropertyService>(user);
+            var repository = helper.GetService<Mock<IPropertyRepository>>();
+            repository.Setup(x => x.Update(It.IsAny<PimsProperty>())).Returns(property);
+
+            var coordinateService = helper.GetService<Mock<ICoordinateTransformService>>();
+            coordinateService.Setup(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()));
+
+            var newValues = new PimsProperty();
+            property.CopyValues(newValues);
+            newValues.Description = "test";
+            newValues.Pid = 200;
+            newValues.Location = GeometryHelper.CreatePoint(0, 0, SpatialReference.BC_ALBERS);
+
+            // Act
+            var updatedProperty = service.Update(newValues);
+
+            // Assert
+            repository.Verify(x => x.Update(It.IsAny<PimsProperty>()), Times.Once);
+            coordinateService.Verify(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()), Times.Never);
+        }
+
+        [Fact]
+        public void Update_Property_With_Reprojection_Success()
+        {
+            // Arrange
+            var helper = new TestHelper();
+            var user = PrincipalHelper.CreateForPermission(Permissions.PropertyView, Permissions.PropertyEdit);
+
+            var property = EntityHelper.CreateProperty(1);
+
+            var service = helper.Create<PropertyService>(user);
+            var repository = helper.GetService<Mock<IPropertyRepository>>();
+            repository.Setup(x => x.Update(It.IsAny<PimsProperty>())).Returns(property);
+
+            var projected = new Coordinate(14000, 9200);
+            var coordinateService = helper.GetService<Mock<ICoordinateTransformService>>();
+            coordinateService.Setup(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>())).Returns(projected);
+
+            var newValues = new PimsProperty();
+            property.CopyValues(newValues);
+            newValues.Description = "test";
+            newValues.Pid = 200;
+            newValues.Location = GeometryHelper.CreatePoint(-119, 53, SpatialReference.WGS_84);
+
+            // Act
+            var updatedProperty = service.Update(newValues);
+
+            // Assert
+            coordinateService.Verify(x => x.TransformCoordinates(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Coordinate>()), Times.Once);
+            repository.Verify(x => x.Update(It.Is<PimsProperty>(p => p.Location.Coordinate.Equals(projected))), Times.Once);
+        }
+
+        [Fact]
+        public void Update_Property_KeyNotFound()
+        {
+            // Arrange
+            var helper = new TestHelper();
+            var user = PrincipalHelper.CreateForPermission(Permissions.PropertyView, Permissions.PropertyEdit);
+            var service = helper.Create<PropertyService>(user);
+
+            // Try to update a non-existent property
+            var property = EntityHelper.CreateProperty(1);
+
+            var repository = helper.GetService<Mock<IPropertyRepository>>();
+            repository.Setup(x => x.Update(property)).Throws<KeyNotFoundException>();
+
+            // Assert
+            Assert.Throws<KeyNotFoundException>(() => service.Update(property));
+        }
+
+        [Fact]
+        public void Update_Property_NoPermission()
+        {
+            // Arrange
+            var helper = new TestHelper();
+            var user = PrincipalHelper.CreateForPermission(Permissions.PropertyView);
+
+            var property = EntityHelper.CreateProperty(1);
+
+            var service = helper.Create<PropertyService>();
+            var repository = helper.GetService<Mock<IPropertyRepository>>();
+            repository.Setup(x => x.Update(It.IsAny<PimsProperty>())).Returns(property);
+
+            // Assert
+            Assert.Throws<NotAuthorizedException>(() => service.Update(property));
+            repository.Verify(x => x.Update(It.IsAny<PimsProperty>()), Times.Never);
+        }
+
         #endregion
         #endregion
     }

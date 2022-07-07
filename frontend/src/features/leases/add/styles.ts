@@ -1,6 +1,7 @@
+import { Button } from 'components/common/buttons/Button';
 import { FastDatePicker, Form, TextArea } from 'components/common/form';
 import { InlineInput, InlineSelect } from 'components/common/form/styles';
-import { Button, Col } from 'react-bootstrap';
+import { Col } from 'react-bootstrap';
 import styled from 'styled-components';
 
 export const PropertyCol = styled(Col)`
@@ -15,10 +16,12 @@ export const PropertyCol = styled(Col)`
 `;
 
 export const RemoveButton = styled(Button)`
-  padding: 0;
-  color: ${props => props.theme.css.formBackgroundColor};
-  &:hover {
-    color: red;
+  &&.btn {
+    padding: 0;
+    color: ${props => props.theme.css.formBackgroundColor};
+    &:hover {
+      color: red;
+    }
   }
 `;
 
@@ -101,7 +104,7 @@ export const LeaseForm = styled(Form)`
     color: ${props => props.theme.css.textColor};
   }
   .row .col:first-of-type .form-label {
-    min-width: 13.5rem;
+    min-width: 21.5rem;
   }
   .form-control {
     min-width: 25rem;

@@ -1,42 +1,34 @@
-import { AsyncTypeahead, Button, Input } from 'components/common/form';
-import { FormSection } from 'components/common/form/styles';
+import { Button } from 'components/common/buttons/Button';
 import { UnsavedChangesPrompt } from 'components/common/form/UnsavedChangesPrompt';
 import { FlexBox } from 'components/common/styles';
-import { CountryCodes } from 'constants/countryCodes';
+import { AddressTypes } from 'constants/addressTypes';
 import {
-  Address,
   CancelConfirmationModal,
-  CommentNotes,
-  ContactEmailList,
-  ContactPhoneList,
   DuplicateContactModal,
   useAddressHelpers,
 } from 'features/contacts/contact/create/components';
 import * as Styled from 'features/contacts/contact/create/styles';
 import {
-  hasAddress,
-  hasEmail,
-  hasPhoneNumber,
-  PersonValidationSchema,
-} from 'features/contacts/contact/create/validation';
-import { formPersonToApiPerson } from 'features/contacts/contactUtils';
+  apiAddressToFormAddress,
+  formPersonToApiPerson,
+  getApiMailingAddress,
+} from 'features/contacts/contactUtils';
 import useAddContact from 'features/contacts/hooks/useAddContact';
+import { Formik, FormikHelpers, FormikProps, getIn } from 'formik';
+import { useApiContacts } from 'hooks/pims-api/useApiContacts';
+import { usePrevious } from 'hooks/usePrevious';
 import {
-  Formik,
-  FormikHelpers,
-  FormikProps,
-  getIn,
-  validateYupSchema,
-  yupToFormErrors,
-} from 'formik';
-import { useApiAutocomplete } from 'hooks/pims-api/useApiAutocomplete';
-import { IAutocompletePrediction } from 'interfaces';
-import { defaultCreatePerson, IEditablePersonForm } from 'interfaces/editable-contact';
-import { useMemo, useRef, useState } from 'react';
-import { Col, Row } from 'react-bootstrap';
+  defaultCreatePerson,
+  getDefaultAddress,
+  IEditablePersonForm,
+} from 'interfaces/editable-contact';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AiOutlineExclamationCircle } from 'react-icons/ai';
 import { useHistory } from 'react-router-dom';
 import { toast } from 'react-toastify';
+
+import PersonSubForm from '../../Person/PersonSubForm';
+import { onValidatePerson } from '../../utils/contactUtils';
 
 /**
  * Formik-connected form to Create Individual Contacts
@@ -49,29 +41,9 @@ export const CreatePersonForm: React.FunctionComponent = () => {
   const [allowDuplicate, setAllowDuplicate] = useState(false);
 
   // validation needs to be adjusted when country == OTHER
-  const { countries } = useAddressHelpers();
-  const otherCountryId = useMemo(
-    () => countries.find(c => c.code === CountryCodes.Other)?.value?.toString(),
-    [countries],
-  );
+  const { otherCountryId } = useAddressHelpers();
 
   const formikRef = useRef<FormikProps<IEditablePersonForm>>(null);
-
-  const onValidate = (values: IEditablePersonForm) => {
-    const errors = {} as any;
-    try {
-      // combine yup schema validation with custom rules
-      if (!hasEmail(values) && !hasPhoneNumber(values) && !hasAddress(values)) {
-        errors.needsContactMethod =
-          'Contacts must have a minimum of one method of contact to be saved. (ex: email,phone or address)';
-      }
-      validateYupSchema(values, PersonValidationSchema, true, { otherCountry: otherCountryId });
-
-      return errors;
-    } catch (err) {
-      return { ...errors, ...yupToFormErrors(err) };
-    }
-  };
 
   const onSubmit = async (
     formPerson: IEditablePersonForm,
@@ -83,7 +55,7 @@ export const CreatePersonForm: React.FunctionComponent = () => {
       const personResponse = await addPerson(newPerson, setShowDuplicateModal, allowDuplicate);
 
       if (!!personResponse?.id) {
-        history.push('/contact/list');
+        history.push(`/contact/P${personResponse?.id}`);
       }
     } finally {
       setSubmitting(false);
@@ -103,7 +75,7 @@ export const CreatePersonForm: React.FunctionComponent = () => {
         component={CreatePersonComponent}
         initialValues={defaultCreatePerson}
         enableReinitialize
-        validate={onValidate}
+        validate={(values: IEditablePersonForm) => onValidatePerson(values, otherCountryId)}
         onSubmit={onSubmit}
         innerRef={formikRef}
       />
@@ -131,32 +103,16 @@ const CreatePersonComponent: React.FC<FormikProps<IEditablePersonForm>> = ({
   dirty,
   resetForm,
   submitForm,
+  setFieldValue,
   initialValues,
 }) => {
   const history = useHistory();
+  const { getOrganization } = useApiContacts();
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  // organization type-ahead state
-  const { getOrganizationPredictions } = useApiAutocomplete();
-  const [isTypeaheadLoading, setIsTypeaheadLoading] = useState(false);
-  const [matchedOrgs, setMatchedOrgs] = useState<IAutocompletePrediction[]>([]);
-
-  // fetch autocomplete suggestions from server
-  const handleTypeaheadSearch = async (query: string) => {
-    try {
-      setIsTypeaheadLoading(true);
-      const { data } = await getOrganizationPredictions(query);
-      setMatchedOrgs(data.predictions);
-      setIsTypeaheadLoading(false);
-    } catch (e) {
-      setMatchedOrgs([]);
-      toast.error('Failed to get autocomplete results for supplied organization', {
-        autoClose: 7000,
-      });
-    } finally {
-      setIsTypeaheadLoading(false);
-    }
-  };
+  const organizationId = getIn(values, 'organization.id');
+  const useOrganizationAddress = getIn(values, 'useOrganizationAddress');
+  const previousUseOrganizationAddress = usePrevious(useOrganizationAddress);
 
   const onCancel = () => {
     if (dirty) {
@@ -176,6 +132,36 @@ const CreatePersonComponent: React.FC<FormikProps<IEditablePersonForm>> = ({
       getIn(errors, 'needsContactMethod')
     );
   }, [touched, errors]);
+
+  // update mailing address sub-form when "useOrganizationAddress" checkbox is toggled
+  useEffect(() => {
+    // toggle is on - set mailing address values to match organization address
+    if (useOrganizationAddress === true && organizationId) {
+      getOrganization(organizationId)
+        .then(({ data }) => {
+          const mailing = getApiMailingAddress(data);
+          setFieldValue('mailingAddress', apiAddressToFormAddress(mailing));
+        })
+        .catch(() => {
+          setFieldValue('mailingAddress', getDefaultAddress(AddressTypes.Mailing));
+          toast.error('Failed to get organization address.');
+        });
+    }
+  }, [useOrganizationAddress, organizationId, setFieldValue, getOrganization]);
+
+  // toggle is off - clear out existing values
+  useEffect(() => {
+    if (previousUseOrganizationAddress === true && useOrganizationAddress === false) {
+      setFieldValue('mailingAddress', getDefaultAddress(AddressTypes.Mailing));
+    }
+  }, [previousUseOrganizationAddress, useOrganizationAddress, setFieldValue]);
+
+  // uncheck the checkbox when organization field is cleared
+  useEffect(() => {
+    if (!organizationId) {
+      setFieldValue('useOrganizationAddress', false);
+    }
+  }, [organizationId, setFieldValue]);
 
   return (
     <>
@@ -197,88 +183,7 @@ const CreatePersonComponent: React.FC<FormikProps<IEditablePersonForm>> = ({
       <Styled.CreateFormLayout>
         <Styled.Form id="createForm">
           <FlexBox column gap="1.6rem">
-            <FormSection>
-              <Row>
-                <Col md={4}>
-                  <Input field="firstName" label="First Name" required />
-                </Col>
-                <Col md={3}>
-                  <Input field="middleNames" label="Middle" />
-                </Col>
-                <Col>
-                  <Input field="surname" label="Last Name" required />
-                </Col>
-              </Row>
-              <Row>
-                <Col md={7}>
-                  <Input field="preferredName" label="Preferred Name" />
-                </Col>
-                <Col></Col>
-              </Row>
-            </FormSection>
-
-            <FormSection>
-              <Styled.H2>Organization</Styled.H2>
-              <Row>
-                <Col md={7}>
-                  <AsyncTypeahead
-                    field="organization"
-                    label="Link to an existing organization"
-                    labelKey="text"
-                    isLoading={isTypeaheadLoading}
-                    options={matchedOrgs}
-                    onSearch={handleTypeaheadSearch}
-                  />
-                </Col>
-              </Row>
-            </FormSection>
-
-            <FormSection>
-              <Styled.H2>Contact info</Styled.H2>
-              <Styled.SectionMessage
-                appearance={
-                  isContactMethodInvalid && getIn(errors, 'needsContactMethod')
-                    ? 'error'
-                    : 'information'
-                }
-                gap="0.5rem"
-              >
-                <AiOutlineExclamationCircle size="1.8rem" className="mt-2" />
-                <p>
-                  Contacts must have a minimum of one method of contact to be saved. <br />
-                  <em>(ex: email,phone or address)</em>
-                </p>
-              </Styled.SectionMessage>
-              <ContactEmailList
-                field="emailContactMethods"
-                contactEmails={values.emailContactMethods}
-              />
-              <br />
-              <ContactPhoneList
-                field="phoneContactMethods"
-                contactPhones={values.phoneContactMethods}
-              />
-            </FormSection>
-
-            <FormSection>
-              <Styled.H2>Address</Styled.H2>
-              <Styled.H3>Mailing Address</Styled.H3>
-              <Address namespace="mailingAddress" />
-            </FormSection>
-
-            <FormSection>
-              <Styled.H3>Property Address</Styled.H3>
-              <Address namespace="propertyAddress" />
-            </FormSection>
-
-            <FormSection>
-              <Styled.H3>Billing Address</Styled.H3>
-              <Address namespace="billingAddress" />
-            </FormSection>
-
-            <FormSection>
-              <CommentNotes />
-            </FormSection>
+            <PersonSubForm isContactMethodInvalid={isContactMethodInvalid} />
           </FlexBox>
         </Styled.Form>
       </Styled.CreateFormLayout>

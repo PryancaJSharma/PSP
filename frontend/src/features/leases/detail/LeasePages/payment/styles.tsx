@@ -1,4 +1,4 @@
-import { Button } from 'components/common/form';
+import { Button } from 'components/common/buttons/Button';
 import { InlineFlexDiv } from 'components/common/styles';
 import { Table } from 'components/Table';
 import { Col } from 'react-bootstrap';
@@ -173,11 +173,15 @@ export const WarningTextBox = styled(InlineFlexDiv)`
 `;
 
 export const AddActualButton = styled(Button)`
-  && {
+  &&& {
     background-color: ${props => props.theme.css.completedColor};
     color: white;
     &:hover {
       background-color: #3aba53;
     }
   }
+`;
+
+export const UnOrderedListNoStyle = styled.ul`
+  list-style-type: none;
 `;

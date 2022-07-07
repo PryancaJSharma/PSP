@@ -14,6 +14,12 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using Pims.Dal.Entities;
+using Pims.Api.Areas.Reports.Models.Lease;
+using ClosedXML.Report;
+using System.IO;
+using Microsoft.AspNetCore.Hosting;
+using Pims.Dal.Services;
 
 namespace Pims.Api.Areas.Reports.Controllers
 {
@@ -29,8 +35,10 @@ namespace Pims.Api.Areas.Reports.Controllers
     public class LeaseController : ControllerBase
     {
         #region Variables
-        private readonly IPimsRepository _pimsService;
+        private readonly IPimsRepository _pimsRepository;
+        private readonly IPimsService _pimsService;
         private readonly IMapper _mapper;
+        private readonly IWebHostEnvironment _webHostEnvironment;
         #endregion
 
         #region Constructors
@@ -38,11 +46,15 @@ namespace Pims.Api.Areas.Reports.Controllers
         /// Creates a new instance of a ReportController class, initializes it with the specified arguments.
         /// </summary>
         /// <param name="pimsService"></param>
+        /// <param name="pimsRepository"></param>
+        /// <param name="webHostEnvironment"></param>
         /// <param name="mapper"></param>
-        public LeaseController(IPimsRepository pimsService, IMapper mapper)
+        public LeaseController(IPimsRepository pimsRepository, IPimsService pimsService, IWebHostEnvironment webHostEnvironment, IMapper mapper)
         {
             _pimsService = pimsService;
             _mapper = mapper;
+            _webHostEnvironment = webHostEnvironment;
+            _pimsRepository = pimsRepository;
         }
         #endregion
 
@@ -56,7 +68,7 @@ namespace Pims.Api.Areas.Reports.Controllers
         /// <param name="all"></param>
         /// <returns></returns>
         [HttpGet]
-        [HasPermission(Permissions.PropertyView)]
+        [HasPermission(Permissions.LeaseView)]
         [Produces(ContentTypes.CONTENT_TYPE_CSV, ContentTypes.CONTENT_TYPE_EXCELX)]
         [ProducesResponseType(200)]
         [SwaggerOperation(Tags = new[] { "lease", "report" })]
@@ -76,37 +88,88 @@ namespace Pims.Api.Areas.Reports.Controllers
         /// <param name="all"></param>
         /// <returns></returns>
         [HttpPost("filter")]
-        [HasPermission(Permissions.PropertyView)]
+        [HasPermission(Permissions.LeaseView)]
         [Produces(ContentTypes.CONTENT_TYPE_CSV, ContentTypes.CONTENT_TYPE_EXCELX)]
         [ProducesResponseType(200)]
         [SwaggerOperation(Tags = new[] { "lease", "report" })]
         public IActionResult ExportLeases([FromBody] Lease.Models.Search.LeaseFilterModel filter, bool all = false)
         {
             filter.ThrowBadRequestIfNull($"The request must include a filter.");
-            if (!filter.IsValid()) throw new BadRequestException("Lease filter must contain valid values.");
+            if (!filter.IsValid())
+            {
+                throw new BadRequestException("Lease filter must contain valid values.");
+            }
+
             var accept = (string)this.Request.Headers["Accept"] ?? throw new BadRequestException($"HTTP request header 'Accept' is required.");
 
             if (accept != ContentTypes.CONTENT_TYPE_CSV && accept != ContentTypes.CONTENT_TYPE_EXCEL && accept != ContentTypes.CONTENT_TYPE_EXCELX)
+            {
                 throw new BadRequestException($"Invalid HTTP request header 'Accept:{accept}'.");
+            }
 
-            //Create duplicate lease rows for every unique property lease, tenant, and term.
-            filter.Quantity = all ? _pimsService.Lease.Count() : filter.Quantity;
-            var page = _pimsService.Lease.GetPage((LeaseFilter)filter);
-            var leaseTerms = _mapper.Map<IEnumerable<Models.Lease.LeaseModel>>(page.Items.SelectMany(l => l.PimsLeaseTerms, (lease, term) => (lease, term)));
-            var leaseProperties = _mapper.Map<IEnumerable<Models.Lease.LeaseModel>>(page.Items.SelectMany(l => l.PimsPropertyLeases, (lease, property) => (lease, property)));
-            var leaseTenants = _mapper.Map<IEnumerable<Models.Lease.LeaseModel>>(page.Items.SelectMany(l => l.PimsLeaseTenants, (lease, tenant) => (lease, tenant)));
-            var leases = _mapper.Map<IEnumerable<Models.Lease.LeaseModel>>(page.Items.Where(l => !l.PimsLeaseTenants.Any() && !l.PimsLeaseTerms.Any() && !l.PimsPropertyLeases.Any()));
-            var allLeases = leaseTerms.Concat(leaseProperties).Concat(leaseTenants).Concat(leases);
+            var flatLeases = GetCrossJoinLeases(filter, all);
 
             return accept.ToString() switch
             {
-                ContentTypes.CONTENT_TYPE_CSV => ReportHelper.GenerateCsv(allLeases),
-                _ => ReportHelper.GenerateExcel(allLeases, "PIMS")
+                ContentTypes.CONTENT_TYPE_CSV => ReportHelper.GenerateCsv(flatLeases),
+                _ => ReportHelper.GenerateExcel(flatLeases, "PIMS")
             };
+        }
 
+        /// <summary>
+        /// Exports leases aggregated by program and region as an Excel file, only including leases that are part of the passed fiscal year.
+        /// 
+        /// </summary>
+        /// <param name="fiscalYearStart"></param>
+        /// <returns></returns>
+        [HttpGet("aggregated")]
+        [HasPermission(Permissions.LeaseView)]
+        [Produces(ContentTypes.CONTENT_TYPE_EXCELX)]
+        [ProducesResponseType(200)]
+        [SwaggerOperation(Tags = new[] { "lease", "report" })]
+        public IActionResult ExportAggregatedLeases(int fiscalYearStart)
+        {
+            if (fiscalYearStart < 1900)
+            {
+                throw new BadRequestException("Fiscal year invalid.");
+            }
+
+            IEnumerable<PimsLease> leasesForFiscal = _pimsService.LeaseReportsService.GetAggregatedLeaseReport(fiscalYearStart);
+            var programs = _pimsRepository.Lookup.GetLeaseProgramTypes();
+            var regions = _pimsRepository.Lookup.GetRegions();
+
+            AggregatedLeasesModel model = new AggregatedLeasesModel(leasesForFiscal, fiscalYearStart, programs, regions);
+
+            using (var template = new XLTemplate(Path.Combine(_webHostEnvironment.ContentRootPath, "Resources", "AggregatedLeasesTemplate.xlsx")))
+            {
+                template.AddVariable(model);
+                template.Generate();
+                var stream = new MemoryStream();
+                template.SaveAs(stream);
+                stream.Position = 0;
+
+                return new FileStreamResult(stream, ContentTypes.CONTENT_TYPE_EXCELX);
+            }
         }
 
         #endregion
+
+        /// <summary>
+        /// Create duplicate lease rows for every unique property lease, tenant, and term.
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <param name="all"></param>
+        /// <returns></returns>
+        public IEnumerable<LeaseModel> GetCrossJoinLeases(Lease.Models.Search.LeaseFilterModel filter, bool all = false)
+        {
+            filter.Quantity = all ? _pimsRepository.Lease.Count() : filter.Quantity;
+            var page = _pimsRepository.Lease.GetPage((LeaseFilter)filter);
+            var allLeases = page.Items.SelectMany(l => l.PimsLeaseTerms.DefaultIfEmpty(), (lease, term) => (lease, term))
+                .SelectMany(lt => lt.lease.PimsPropertyLeases.DefaultIfEmpty(), (leaseTerm, property) => (leaseTerm.term, leaseTerm.lease, property))
+                .SelectMany(ltp => ltp.lease.PimsLeaseTenants.DefaultIfEmpty(), (leaseTermProperty, tenant) => (leaseTermProperty.term, leaseTermProperty.lease, leaseTermProperty.property, tenant));
+            var flatLeases = _mapper.Map<IEnumerable<LeaseModel>>(allLeases);
+            return flatLeases;
+        }
         #endregion
     }
 }

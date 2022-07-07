@@ -6,31 +6,25 @@ import MockAdapter from 'axios-mock-adapter';
 import { useLayerQuery } from 'components/maps/leaflet/LayerPopup';
 import { createPoints } from 'components/maps/leaflet/mapUtils';
 import {
-  AddressTypes,
   Claims,
   PropertyAreaUnitTypes,
   PropertyClassificationTypes,
   PropertyDataSourceTypes,
   PropertyStatusTypes,
   PropertyTenureTypes,
-  PropertyTypes,
 } from 'constants/index';
-import { usePropertyNames } from 'features/properties/common/slices/usePropertyNames';
 import { createMemoryHistory } from 'history';
+import { useProperties } from 'hooks';
 import { useApiProperties } from 'hooks/pims-api';
 import { useApi } from 'hooks/useApi';
+import { useLtsa } from 'hooks/useLtsa';
+import { usePropertyAssociations } from 'hooks/usePropertyAssociations';
 import { IProperty } from 'interfaces';
 import { noop } from 'lodash';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import leafletMouseSlice from 'store/slices/leafletMouse/LeafletMouseSlice';
 import { lookupCodesSlice } from 'store/slices/lookupCodes';
-import {
-  IPropertyDetail,
-  IPropertyState,
-  propertiesSlice,
-  useProperties,
-} from 'store/slices/properties';
 import { mockKeycloak } from 'utils/test-utils';
 import TestCommonWrapper from 'utils/TestCommonWrapper';
 
@@ -41,14 +35,16 @@ jest.mock('@react-keycloak/web');
 const mockStore = configureMockStore([thunk]);
 jest.mock('hooks/useApi');
 jest.mock('components/maps/leaflet/LayerPopup');
-jest.mock('features/properties/common/slices/usePropertyNames');
-jest.mock('store/slices/properties/useProperties');
+jest.mock('hooks/useProperties');
+jest.mock('hooks/usePropertyAssociations');
 jest.mock('hooks/pims-api');
+jest.mock('hooks/useLtsa');
 
-const fetchPropertyNames = jest.fn(() => () => Promise.resolve(['test']));
-(usePropertyNames as any).mockImplementation(() => ({
-  fetchPropertyNames,
-}));
+const ltsaMock = {
+  getLtsaData: jest.fn(),
+  ltsaLoading: false,
+};
+(useLtsa as any).mockImplementation(() => ltsaMock);
 
 (useProperties as any).mockImplementation(() => ({
   deleteParcel: jest.fn(),
@@ -60,55 +56,58 @@ const fetchPropertyNames = jest.fn(() => () => Promise.resolve(['test']));
   fetchParcelDetail: jest.fn(),
   fetchParcelsDetail: jest.fn(),
   fetchParcels: jest.fn(),
+  getPropertyWithPid: jest.fn(),
+}));
+
+(usePropertyAssociations as any).mockImplementation(() => ({
+  getPropertyAssociations: jest.fn(),
 }));
 
 const largeMockParcels = [
-  { id: 1, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 2, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 3, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 4, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 5, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 6, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 7, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 8, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 9, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 10, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 11, latitude: 53.918165, longitude: -122.749772, propertyTypeId: PropertyTypes.Land },
+  { id: 1, latitude: 53.917065, longitude: -122.749672 },
+  { id: 2, latitude: 53.917065, longitude: -122.749672 },
+  { id: 3, latitude: 53.917065, longitude: -122.749672 },
+  { id: 4, latitude: 53.917065, longitude: -122.749672 },
+  { id: 5, latitude: 53.917065, longitude: -122.749672 },
+  { id: 6, latitude: 53.917065, longitude: -122.749672 },
+  { id: 7, latitude: 53.917065, longitude: -122.749672 },
+  { id: 8, latitude: 53.917065, longitude: -122.749672 },
+  { id: 9, latitude: 53.917065, longitude: -122.749672 },
+  { id: 10, latitude: 53.917065, longitude: -122.749672 },
+  { id: 11, latitude: 53.918165, longitude: -122.749772 },
 ] as IProperty[];
 
 // This mocks the parcels of land a user can see - render a cluster and a marker
 const smallMockParcels = [
-  { id: 1, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 3, latitude: 53.918165, longitude: -122.749772, propertyTypeId: PropertyTypes.Land },
+  { id: 1, latitude: 53.917065, longitude: -122.749672 },
+  { id: 3, latitude: 53.918165, longitude: -122.749772 },
 ] as IProperty[];
 
 // This mocks the parcels of land a user can see - render a cluster and a marker
 const mockParcels = [
-  { id: 1, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 2, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Land },
-  { id: 3, latitude: 53.917065, longitude: -122.749772, propertyTypeId: PropertyTypes.Land },
+  { id: 1, latitude: 53.917065, longitude: -122.749672 },
+  { id: 2, latitude: 53.917065, longitude: -122.749672 },
+  { id: 3, latitude: 53.917065, longitude: -122.749772 },
 ] as IProperty[];
 
-let findOneWhereContains = jest.fn();
-
-(useLayerQuery as jest.Mock).mockReturnValue({
-  findOneWhereContains: findOneWhereContains,
-});
+const useLayerQueryMock = {
+  findOneWhereContains: jest.fn(),
+  findMetadataByLocation: jest.fn(),
+};
+(useLayerQuery as jest.Mock).mockReturnValue(useLayerQueryMock);
 
 // This will spoof the active parcel (the one that will populate the popup details)
-const mockDetails: IPropertyDetail = {
-  propertyTypeId: PropertyTypes.Land,
+const mockDetails = {
   propertyDetail: {
     id: 1,
     pid: '000-000-000',
     pin: '',
-    propertyTypeId: PropertyTypes.Land,
     statusId: PropertyStatusTypes.UnderAdmin,
     dataSourceId: PropertyDataSourceTypes.PAIMS,
     dataSourceEffectiveDate: new Date(),
     classificationId: PropertyClassificationTypes.CoreStrategic,
     classification: 'Core Operational',
-    tenureId: PropertyTenureTypes.TitledLandMOTI,
+    tenureId: PropertyTenureTypes.HighwayRoad,
     name: 'test name',
     description: 'test',
     encumbranceReason: '',
@@ -127,7 +126,6 @@ const mockDetails: IPropertyDetail = {
     regionId: 1,
     districtId: 1,
     address: {
-      addressTypeId: AddressTypes.Mailing,
       streetAddress1: '1234 mock Street',
       streetAddress2: 'N/A',
       municipality: '',
@@ -142,11 +140,6 @@ const mockDetails: IPropertyDetail = {
 
 const store = mockStore({
   [lookupCodesSlice.name]: { lookupCodes: [] },
-  [propertiesSlice.name]: {
-    propertyDetail: mockDetails,
-    draftProperties: [],
-    properties: mockParcels,
-  } as IPropertyState,
   [leafletMouseSlice.name]: { propertyDetail: mockDetails },
 });
 
@@ -155,6 +148,7 @@ describe('MapView', () => {
   const onMarkerClick = jest.fn();
 
   beforeEach(() => {
+    useLayerQueryMock.findMetadataByLocation.mockResolvedValue({});
     (useKeycloak as jest.Mock).mockReturnValue({
       keycloak: {
         userInfo: {
@@ -196,11 +190,7 @@ describe('MapView', () => {
     process.env.REACT_APP_TENANT = 'MOTI';
     return (
       <TestCommonWrapper store={store} history={history}>
-        <MapView
-          disableMapFilterBar={false}
-          showParcelBoundaries={true}
-          onMarkerPopupClosed={noop}
-        />
+        <MapView showParcelBoundaries={true} onMarkerPopupClosed={noop} />
       </TestCommonWrapper>
     );
   };
@@ -251,27 +241,6 @@ describe('MapView', () => {
   it('Renders markers when provided', async () => {
     await waitFor(() => render(getMap()));
     expect(document.querySelector('.leaflet-marker-icon')).toBeVisible();
-  });
-
-  it('Rendered markers can be clicked', async () => {
-    await waitFor(() => render(getMap()));
-    const cluster = document.querySelector('.leaflet-marker-icon');
-    fireEvent.click(cluster!);
-    const marker = document.querySelector('img.leaflet-marker-icon');
-    fireEvent.click(marker!);
-    const text = await screen.findByText('Property Info');
-    expect(text).toBeVisible();
-  });
-
-  it('Rendered markers can be clicked and displayed with permissions', async () => {
-    mockKeycloak({ claims: [Claims.ADMIN_PROPERTIES] });
-    await waitFor(() => render(getMap()));
-    const cluster = document.querySelector('.leaflet-marker-icon');
-    fireEvent.click(cluster!);
-    const marker = document.querySelector('img.leaflet-marker-icon');
-    fireEvent.click(marker!);
-    const text = await screen.findByText('Property Info');
-    expect(text).toBeVisible();
   });
 
   it('the map can zoom in until no clusters are visible', async () => {
@@ -349,14 +318,12 @@ describe('MapView', () => {
   });
 
   it('the map can be clicked', async () => {
-    findOneWhereContains.mockResolvedValue({
+    useLayerQueryMock.findOneWhereContains.mockResolvedValue({
       features: [
         {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [-1.133005, 52.629835] },
-          properties: {
-            propertyTypeId: PropertyTypes.Land,
-          },
+          properties: {},
         },
       ],
     });
@@ -366,21 +333,19 @@ describe('MapView', () => {
       expect(map).toBeVisible();
       fireEvent.click(map!);
     });
-    expect(findOneWhereContains).toHaveBeenLastCalledWith({
-      lat: 48.004625021133904,
-      lng: 123.00292968750001,
+    expect(useLayerQueryMock.findOneWhereContains).toHaveBeenLastCalledWith({
+      lat: 52.81604319154934,
+      lng: -124.67285156250001,
     });
   });
 
-  it('When the map is clicked, the resulting popup can be closed', async () => {
-    findOneWhereContains.mockResolvedValue({
+  xit('When the map is clicked, the resulting popup can be closed', async () => {
+    useLayerQueryMock.findOneWhereContains.mockResolvedValue({
       features: [
         {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [-1.133005, 52.629835] },
-          properties: {
-            propertyTypeId: PropertyTypes.Land,
-          },
+          properties: { pid: '123-456-789' },
         },
       ],
     });
@@ -390,9 +355,9 @@ describe('MapView', () => {
       expect(map).toBeVisible();
       userEvent.click(map!);
     });
-    expect(findOneWhereContains).toHaveBeenLastCalledWith({
-      lat: 48.004625021133904,
-      lng: 123.00292968750001,
+    expect(useLayerQueryMock.findOneWhereContains).toHaveBeenLastCalledWith({
+      lat: 52.81604319154934,
+      lng: -124.67285156250001,
     });
     const closeButton = container.querySelector('.leaflet-popup-close-button');
     fireEvent.click(closeButton!);
@@ -430,5 +395,38 @@ describe('MapView', () => {
       const polyline = container.querySelector('.leaflet-pane.leaflet-overlay-pane svg g');
       expect(polyline).toBeVisible();
     });
+  });
+
+  it('Rendered markers can be clicked', async () => {
+    await waitFor(() => render(getMap()));
+    const cluster = document.querySelector('.leaflet-marker-icon');
+    fireEvent.click(cluster!);
+    const marker = document.querySelector('img.leaflet-marker-icon');
+    fireEvent.click(marker!);
+    const text = await screen.findByText('Property Information');
+    expect(text).toBeVisible();
+  });
+
+  it('Rendered markers can be clicked and displayed with permissions', async () => {
+    mockKeycloak({ claims: [Claims.ADMIN_PROPERTIES] });
+    await waitFor(() => render(getMap()));
+    const cluster = document.querySelector('.leaflet-marker-icon');
+    fireEvent.click(cluster!);
+    const marker = document.querySelector('img.leaflet-marker-icon');
+    fireEvent.click(marker!);
+    const text = await screen.findByText('Property Information');
+    expect(text).toBeVisible();
+  });
+
+  it('Rendered markers can be clicked which hides the filter', async () => {
+    await waitFor(() => render(getMap()));
+    const cluster = document.querySelector('.leaflet-marker-icon');
+    fireEvent.click(cluster!);
+    const marker = document.querySelector('img.leaflet-marker-icon');
+    fireEvent.click(marker!);
+    const text = await screen.findByText('Property Information');
+    expect(text).toBeVisible();
+    const label = await screen.queryByText('Search:');
+    expect(label).toBeNull();
   });
 });

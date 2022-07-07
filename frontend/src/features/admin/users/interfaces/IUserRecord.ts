@@ -1,8 +1,3 @@
-export enum AccountActive {
-  YES = 'Yes',
-  NO = 'No',
-}
-
 export interface IUserRecord {
   id?: number;
   keycloakUserId?: string;
@@ -11,7 +6,7 @@ export interface IUserRecord {
   firstName?: string;
   surname?: string;
   isDisabled?: boolean;
-  organization?: string;
+  regions?: string;
   roles?: string;
   position?: string;
   lastLogin?: string;

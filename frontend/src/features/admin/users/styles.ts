@@ -1,5 +1,3 @@
-import variables from '_variables.module.scss';
-import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import styled from 'styled-components';
 
@@ -17,6 +15,13 @@ export const ScrollContainer = styled.div`
   overflow-y: auto;
 `;
 
+export const ScrollXYContainer = styled.div`
+  padding: 1.6rem 3.2rem;
+  flex-grow: 1; // because all parents are flex and have flex-grow set to 1 this takes all available space - calc no longer needed!
+  overflow-y: auto;
+  overflow-x: auto;
+`;
+
 export const WithShadow = styled(Container)`
   padding: 0;
   box-shadow: 0px 4px 5px rgba(0, 0, 0, 0.2);
@@ -26,12 +31,6 @@ export const WithShadow = styled(Container)`
 export const TableContainer = styled(Container)`
   margin-top: 1rem;
   margin-bottom: 4rem;
-`;
-
-export const FileIcon = styled(Button)`
-  background-color: #fff !important;
-  color: ${variables.primaryColor} !important;
-  padding: 0.6rem 0.5rem;
 `;
 
 export const Ribbon = styled.div`

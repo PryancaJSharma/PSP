@@ -1,10 +1,10 @@
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
-using Pims.Core.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using Pims.Core.Extensions;
 
 namespace Pims.Core.Test
 {
@@ -47,7 +47,11 @@ namespace Pims.Core.Test
 
                 // If an 'args' type matches, use it for the mock.
                 var arg = args.FirstOrDefault(a => a.GetType() == carg.ParameterType);
-                if (arg == null) arg = args.FirstOrDefault(a => carg.ParameterType.IsAssignableFrom(a.GetType()));
+                if (arg == null)
+                {
+                    arg = args.FirstOrDefault(a => carg.ParameterType.IsAssignableFrom(a.GetType()));
+                }
+
                 if (arg != null)
                 {
                     // Add the supplied argument to services.

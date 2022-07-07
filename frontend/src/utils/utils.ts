@@ -1,4 +1,4 @@
-import { AxiosError } from 'axios';
+import { AxiosError, AxiosResponse } from 'axios';
 import { SelectOption } from 'components/common/form';
 import { TableSort } from 'components/Table/TableSort';
 import { FormikProps, getIn } from 'formik';
@@ -8,6 +8,17 @@ import moment, { Moment } from 'moment-timezone';
 import { hideLoading, showLoading } from 'react-redux-loading-bar';
 import { ILookupCode } from 'store/slices/lookupCodes';
 import { logError, logRequest, logSuccess } from 'store/slices/network/networkSlice';
+
+/**
+ * Rounds the supplied number to a certain number of decimal places
+ * @param value The number to round
+ * @param decimalPlaces The number of decimal places. Defaults to 2
+ * @returns The rounded number
+ */
+export function round(value: number, decimalPlaces = 2): number {
+  const factorOfTen = Math.pow(10, decimalPlaces);
+  return Math.round((value + Number.EPSILON) * factorOfTen) / factorOfTen;
+}
 
 /**
  * Convert the specified 'input' value into a decimal or undefined.
@@ -113,23 +124,29 @@ export const formikFieldMemo = (
  * @param actionType All dispatched GenericNetworkActions will use this action type.
  * @param axiosPromise The result of an axios.get, .put, ..., call.
  */
-export const handleAxiosResponse = (
+export const handleAxiosResponse = <ResponseType>(
   dispatch: Function,
   actionType: string,
-  axiosPromise: Promise<any>,
-): Promise<any> => {
+  axiosPromise: Promise<AxiosResponse<ResponseType>>,
+  skipErrorLogCodes?: number[],
+): Promise<ResponseType> => {
   dispatch(logRequest(actionType));
   dispatch(showLoading());
   return axiosPromise
-    .then((response: any) => {
+    .then((response: AxiosResponse<ResponseType>) => {
       dispatch(logSuccess({ name: actionType }));
       dispatch(hideLoading());
-      return response.data ?? response;
+      return response?.data;
     })
     .catch((axiosError: AxiosError) => {
-      dispatch(
-        logError({ name: actionType, status: axiosError?.response?.status, error: axiosError }),
-      );
+      if (
+        !skipErrorLogCodes ||
+        (axiosError?.response?.status && !skipErrorLogCodes.includes(axiosError?.response?.status))
+      ) {
+        dispatch(
+          logError({ name: actionType, status: axiosError?.response?.status, error: axiosError }),
+        );
+      }
       throw axiosError;
     })
     .finally(() => {
@@ -182,6 +199,15 @@ export const formatDate = (date?: string | Date | Moment) => {
 
 export const prettyFormatDate = (date?: string | Date | Moment) => {
   return !!date ? moment(date).format('MMM D, YYYY') : '';
+};
+
+export const prettyFormatDateTime = (date?: string | Date | Moment) => {
+  return !!date
+    ? moment
+        .utc(date)
+        .local()
+        .format('MMM D, YYYY hh:mm a')
+    : '';
 };
 
 /**

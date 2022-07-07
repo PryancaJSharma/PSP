@@ -48,17 +48,16 @@ namespace Pims.Api.Areas.Lease.Mapping.Lease
                 .Map(dest => dest.IsOtherImprovement, src => src.IsOtherImprovement)
                 .Map(dest => dest.Persons, src => src.GetPersons())
                 .Map(dest => dest.Organizations, src => src.GetOrganizations())
-                .Map(dest => dest.TenantNotes, src => src.PimsLeaseTenants != null ? src.PimsLeaseTenants.Select(t => t.Note) : null)
+                .Map(dest => dest.TenantNotes, src => src.PimsLeaseTenants.Select(t => t.Note))
                 .Map(dest => dest.Improvements, src => src.GetImprovements())
                 .Map(dest => dest.SecurityDeposits, src => src.PimsSecurityDeposits)
-                .Map(dest => dest.SecurityDepositReturns, src => src.PimsSecurityDepositReturns)
                 .Map(dest => dest.Tenants, src => src.PimsLeaseTenants)
                 .Map(dest => dest.ReturnNotes, src => src.ReturnNotes)
                 .Map(dest => dest.IsExpired, src => src.IsExpired)
                 .Map(dest => dest.HasPhysicalFile, src => src.HasPhysicalFile)
                 .Map(dest => dest.HasDigitalLicense, src => src.HasDigitalLicense)
                 .Map(dest => dest.HasDigitalFile, src => src.HasDigitalFile)
-                .Map(dest => dest.HasDigitalLicense, src => src.HasDigitalLicense);
+                .Map(dest => dest.HasPhysicalLicense, src => src.HasPhysicialLicense);
 
             config.NewConfig<Model.LeaseModel, Entity.PimsLease>()
                 .Map(dest => dest.LeaseId, src => src.Id)

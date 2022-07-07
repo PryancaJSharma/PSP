@@ -1,7 +1,9 @@
 import { CSSProperties } from 'react';
-import { Breadcrumb as BsBreadcrumb, Button } from 'react-bootstrap';
+import { Breadcrumb as BsBreadcrumb, Row } from 'react-bootstrap';
+import { Tabs as BsTabs } from 'react-bootstrap';
 import styled, { css } from 'styled-components';
 
+import { Form } from './form';
 import GenericModal from './GenericModal';
 
 export const LeftAlignDiv = styled.div`
@@ -33,24 +35,6 @@ export const Breadcrumb = styled(BsBreadcrumb)`
 export const SelectedText = styled.p`
   font-size: 1.4rem;
   color: ${props => props.theme.css.completedColor};
-`;
-
-export const IconButton = styled(Button)`
-  &.btn.btn-light {
-    background-color: unset;
-    border: 0;
-    :hover {
-      background-color: unset;
-    }
-    svg {
-      color: ${({ theme }) => theme.css.slideOutBlue};
-      transition: all 0.3s ease-out;
-    }
-    svg:hover {
-      transition: all 0.3s ease-in;
-      color: ${({ theme }) => theme.css.dangerColor};
-    }
-  }
 `;
 
 export const PrimaryGenericModal = styled(GenericModal)`
@@ -91,4 +75,70 @@ export const FlexBox = styled.div<IFlexBoxProps>`
       align-items: center;
       justify-content: center;
     `}
+`;
+
+export const Tabs = styled(BsTabs)`
+  background-color: white;
+  color: ${props => props.theme.css.slideOutBlue};
+  font-size: 1.4rem;
+  border-color: transparent;
+  .nav-tabs {
+    height: 2.4rem;
+  }
+  .nav-item {
+    min-width: 7rem;
+    padding: 0.1rem 0.6rem;
+
+    &:hover {
+      border-color: transparent;
+    }
+    &.active {
+      background-color: ${props => props.theme.css.filterBackgroundColor};
+      font-family: 'BCSans-Bold';
+      color: ${props => props.theme.css.slideOutBlue};
+      border-color: transparent;
+    }
+  }
+`;
+
+export const NoPaddingRow = styled(Row)`
+  [class^='col-'] {
+    padding: 0;
+  }
+  margin: 0;
+`;
+
+export const H1 = styled.h1`
+  color: ${props => props.theme.css.textColor};
+  font-family: 'BCSans-Bold';
+  font-size: 3.2rem;
+  border-bottom: solid 0.5rem ${props => props.theme.css.primaryLightColor};
+  width: 100%;
+  text-align: left;
+  margin-bottom: 2rem;
+`;
+
+export const H2 = styled.h2`
+  color: ${props => props.theme.css.primaryColor};
+  font-family: 'BCSans-Bold';
+  font-size: 2.6rem;
+  border-bottom: solid 0.2rem ${props => props.theme.css.primaryLightColor};
+  width: 100%;
+  text-align: left;
+  margin-bottom: 2rem;
+`;
+
+export const H3 = styled.h3`
+  color: ${props => props.theme.css.primaryColor};
+  font-family: 'BCSans-Bold';
+  font-size: 2rem;
+  border-bottom: solid 0.2rem ${props => props.theme.css.discardedColor};
+  width: 100%;
+  text-align: left;
+  margin-bottom: 2rem;
+`;
+
+export const FilterBoxForm = styled(Form)`
+  background-color: ${({ theme }) => theme.css.filterBoxColor};
+  border-radius: 0.5rem;
 `;

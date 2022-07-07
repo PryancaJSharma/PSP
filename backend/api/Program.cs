@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics.CodeAnalysis;
 using CommandLine;
 using CommandLine.Text;
 using Microsoft.AspNetCore;
@@ -6,8 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Pims.Api.Configuration;
 using Serilog;
-using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Pims.Api
 {
@@ -64,6 +64,8 @@ namespace Pims.Api
                     config.AddJsonFile($"connectionstrings.{env}.json", optional: true, reloadOnChange: true);
                     config.AddJsonFile("geocoder.json", optional: false, reloadOnChange: true);
                     config.AddJsonFile($"geocoder.{env}.json", optional: true, reloadOnChange: true);
+                    config.AddJsonFile("ltsa.json", optional: false, reloadOnChange: true);
+                    config.AddJsonFile($"ltsa.{env}.json", optional: true, reloadOnChange: true);
                     config.AddEnvironmentVariables();
                     config.AddCommandLine(args);
                 })

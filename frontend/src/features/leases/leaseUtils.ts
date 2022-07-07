@@ -1,17 +1,31 @@
 import { LeaseInitiatorTypes } from 'constants/leaseInitiatorTypes';
-import { IAddFormLease, ILease } from 'interfaces';
-import { stringToNull, stringToTypeCode } from 'utils/formUtils';
+import { FormTenant } from 'features/leases/detail/LeasePages/tenant/Tenant';
+import { IAddFormLease, IFormLeaseTerm, ILease } from 'interfaces';
+import { Api_LeaseTenant } from 'models/api/LeaseTenant';
+import {
+  booleanToYesNoUnknownString,
+  stringToNull,
+  toTypeCode,
+  yesNoUnknownToBoolean,
+} from 'utils/formUtils';
+import { formatNames } from 'utils/personUtils';
 
 import { IFormLease } from './../../interfaces/ILease';
+import {
+  apiLeaseTermToFormLeaseTerm,
+  formLeaseTermToApiLeaseTerm,
+  ILeaseTerm,
+} from './../../interfaces/ILeaseTerm';
 
 /**
  * return all of the person tenant names and organization tenant names of this lease
  * @param lease
  */
-export const getAllNames = (lease?: ILease) => {
-  const allNames = (lease?.persons?.map(p => p.fullName) ?? []).concat(
-    lease?.organizations?.map(p => p.name) ?? [],
-  );
+export const getAllNames = (lease?: ILease): string => {
+  const allNames =
+    lease?.persons
+      ?.map<string>(p => formatNames([p.firstName, p.middleNames, p.surname]))
+      .concat(lease?.organizations?.map(p => p.name)) ?? [];
   return allNames.join(', ');
 };
 
@@ -24,42 +38,34 @@ export const formLeaseToApiLease = (formLease: IFormLease) => {
     expiryDate: stringToNull(formLease.expiryDate),
     renewalDate: stringToNull(formLease.renewalDate),
     responsibilityEffectiveDate: stringToNull(formLease.responsibilityEffectiveDate),
-    tenants: formLease.tenants.map(tenant => ({
-      ...tenant,
-      leaseId: formLease.id,
+    terms: formLease.terms.map<ILeaseTerm>(term => formLeaseTermToApiLeaseTerm(term)),
+    hasDigitalLicense: yesNoUnknownToBoolean(formLease.hasDigitalLicense),
+    hasPhysicalLicense: yesNoUnknownToBoolean(formLease.hasPhysicalLicense),
+    tenants: formLease.tenants.map<Api_LeaseTenant>(tenant => ({
+      id: tenant.leaseTenantId,
+      leaseId: formLease.id ?? 0,
+      organizationId: !tenant.personId ? tenant.organizationId : undefined,
+      personId: tenant.personId,
+      primaryContactId: tenant?.primaryContactId,
+      note: tenant.note,
     })),
   } as ILease;
 };
 
-export const apiLeaseToFormLease = (lease?: ILease) => {
-  return !!lease
-    ? ({
-        ...lease,
-        tenants: lease.tenants.map(tenant => ({
-          summary: !!tenant.person
-            ? `${tenant.person?.firstName} ${
-                !!tenant.person?.middleNames ? tenant.person?.middleNames : ''
-              } ${tenant.person?.surname}`
-            : tenant.organization?.name,
-          firstName: tenant.person?.firstName,
-          surname: tenant.person?.surname,
-          email: tenant.person?.email ?? tenant.organization?.email,
-          mailingAddress:
-            tenant.person?.address?.streetAddress1 ?? tenant.organization?.address?.streetAddress1,
-          municipalityName:
-            tenant.person?.address?.municipality ?? tenant.organization?.address?.municipality,
-          provinceState:
-            tenant.person?.address?.provinceCode ?? tenant.organization?.address?.provinceCode,
-          note: tenant.note,
-          personId: tenant.personId,
-          organizationId: tenant.organizationId,
-          leaseId: tenant.leaseId,
-          rowVersion: tenant.rowVersion,
-          leaseTenantId: tenant.leaseTenantId,
-          id: !!tenant.personId ? `P${tenant.personId}` : `O${tenant.organizationId}`,
-        })),
-      } as IFormLease)
-    : undefined;
+export const apiLeaseToFormLease = (lease?: ILease): IFormLease | undefined => {
+  if (!lease) {
+    return undefined;
+  }
+  const formLease: IFormLease = {
+    ...lease,
+    amount: lease.amount ?? '',
+    tfaFileNo: lease.tfaFileNo ?? '',
+    hasDigitalLicense: booleanToYesNoUnknownString(lease.hasDigitalLicense),
+    hasPhysicalLicense: booleanToYesNoUnknownString(lease.hasPhysicalLicense),
+    terms: lease.terms.map<IFormLeaseTerm>(term => apiLeaseTermToFormLeaseTerm(term)) ?? [],
+    tenants: lease.tenants.map<FormTenant>(tenant => new FormTenant(tenant)) ?? [],
+  };
+  return formLease;
 };
 
 export const addFormLeaseToApiLease = (formLease: IAddFormLease) => {
@@ -68,24 +74,26 @@ export const addFormLeaseToApiLease = (formLease: IAddFormLease) => {
     renewalCount: parseInt(formLease.renewalCount.toString()) || 0,
     tfaFileNo: parseInt(formLease?.tfaFileNo?.toString() || '') || 0,
     amount: parseFloat(formLease.amount.toString()) || 0.0,
-    paymentReceivableType: stringToTypeCode(formLease.paymentReceivableType),
-    categoryType: stringToTypeCode(formLease.categoryType),
-    purposeType: stringToTypeCode(formLease.purposeType),
-    responsibilityType: stringToTypeCode(formLease.responsibilityType),
-    initiatorType: stringToTypeCode(formLease.initiatorType || LeaseInitiatorTypes.Hq),
-    statusType: stringToTypeCode(formLease.statusType),
-    type: stringToTypeCode(formLease.type),
+    paymentReceivableType: toTypeCode(formLease.paymentReceivableType),
+    categoryType: toTypeCode(formLease.categoryType),
+    purposeType: toTypeCode(formLease.purposeType),
+    responsibilityType: toTypeCode(formLease.responsibilityType),
+    initiatorType: toTypeCode(formLease.initiatorType || LeaseInitiatorTypes.Hq),
+    statusType: toTypeCode(formLease.statusType),
+    type: toTypeCode(formLease.type),
     region: { regionCode: formLease.region },
-    programType: stringToTypeCode(formLease.programType),
+    programType: toTypeCode(formLease.programType),
     expiryDate: stringToNull(formLease.expiryDate),
     psFileNo: stringToNull(formLease.psFileNo),
     renewalDate: stringToNull(formLease.renewalDate),
     responsibilityEffectiveDate: stringToNull(formLease.responsibilityEffectiveDate),
+    hasDigitalLicense: yesNoUnknownToBoolean(formLease.hasDigitalLicense),
+    hasPhysicalLicense: yesNoUnknownToBoolean(formLease.hasPhysicalLicense),
     properties: formLease.properties.map(formProperty => ({
       ...formProperty,
       pin: stringToNull(formProperty.pin),
-      areaUnit: stringToNull(formProperty.areaUnit),
-      areaUnitType: stringToTypeCode(formProperty.areaUnitType),
+      landArea: stringToNull(formProperty.landArea),
+      areaUnitType: toTypeCode(formProperty.areaUnitType?.id),
     })),
   } as ILease;
 };
@@ -103,6 +111,8 @@ export const apiLeaseToAddFormLease = (lease?: ILease) => {
         type: lease.type?.id ?? '',
         region: lease?.region?.regionCode ?? '',
         programType: lease.programType?.id ?? '',
+        hasDigitalLicense: booleanToYesNoUnknownString(lease.hasDigitalLicense),
+        hasPhysicalLicense: booleanToYesNoUnknownString(lease.hasPhysicalLicense),
       } as IAddFormLease)
     : undefined;
 };

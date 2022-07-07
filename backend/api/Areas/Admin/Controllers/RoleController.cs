@@ -7,7 +7,7 @@ using Pims.Dal.Entities;
 using Pims.Dal.Security;
 using Swashbuckle.AspNetCore.Annotations;
 using Entity = Pims.Dal.Entities;
-using Model = Pims.Api.Areas.Admin.Models.Role;
+using Model = Pims.Api.Models.Concepts;
 
 namespace Pims.Api.Areas.Admin.Controllers
 {
@@ -55,9 +55,20 @@ namespace Pims.Api.Areas.Admin.Controllers
         [SwaggerOperation(Tags = new[] { "admin-role" })]
         public IActionResult GetRoles(int page = 1, int quantity = 10, string name = null)
         {
-            if (page < 1) page = 1;
-            if (quantity < 1) quantity = 1;
-            if (quantity > 50) quantity = 50;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (quantity < 1)
+            {
+                quantity = 1;
+            }
+
+            if (quantity > 50)
+            {
+                quantity = 50;
+            }
 
             var paged = _pimsService.Role.Get(page, quantity, name);
             var result = _mapper.Map<Api.Models.PageModel<Model.RoleModel>>(paged);
@@ -77,23 +88,6 @@ namespace Pims.Api.Areas.Admin.Controllers
         public IActionResult GetRole(Guid key)
         {
             var entity = _pimsService.Role.Get(key);
-            var role = _mapper.Map<Model.RoleModel>(entity);
-            return new JsonResult(role);
-        }
-
-        /// <summary>
-        /// GET - Returns a role for the specified 'name' from the datasource.
-        /// </summary>
-        /// <param name="name">The unique 'name' for the role to return.</param>
-        /// <returns>The role requested.</returns>
-        [HttpGet("name/{name}")]
-        [Produces("application/json")]
-        [ProducesResponseType(typeof(Model.RoleModel), 200)]
-        [ProducesResponseType(typeof(Api.Models.ErrorResponseModel), 400)]
-        [SwaggerOperation(Tags = new[] { "admin-role" })]
-        public IActionResult GetRoleByName(string name)
-        {
-            var entity = _pimsService.Role.GetByName(name);
             var role = _mapper.Map<Model.RoleModel>(entity);
             return new JsonResult(role);
         }

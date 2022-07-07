@@ -1,5 +1,5 @@
 import { useKeycloak } from '@react-keycloak/web';
-import { ILeaseSecurityDeposit, ILeaseSecurityDepositReturn } from 'interfaces';
+import { Api_SecurityDeposit, Api_SecurityDepositReturn } from 'models/api/SecurityDeposit';
 import { formatMoney, prettyFormatDate } from 'utils';
 import { getAllByRole as getAllByRoleBase, render, RenderOptions } from 'utils/test-utils';
 
@@ -9,7 +9,21 @@ import DepositsReturnedContainer, {
 
 const mockCallback = (id: number): void => {};
 
-const mockDeposit: ILeaseSecurityDeposit = {
+const mockDepositReturns: Api_SecurityDepositReturn[] = [
+  {
+    id: 1,
+    parentDepositId: 7,
+    terminationDate: '2022-02-01',
+    claimsAgainst: 1234.0,
+    returnAmount: 123.0,
+    interestPaid: 1.0,
+    returnDate: '2022-02-16',
+    rowVersion: 1,
+    contactHolder: { id: 'O3', organization: { name: 'test organization' } },
+  },
+];
+
+const mockDeposit: Api_SecurityDeposit = {
   id: 7,
   description: 'Test deposit 1',
   amountPaid: 1234.0,
@@ -19,27 +33,10 @@ const mockDeposit: ILeaseSecurityDeposit = {
     description: 'Pet deposit',
     isDisabled: false,
   },
+  depositReturns: mockDepositReturns,
   rowVersion: 1,
+  contactHolder: { id: 'O3', organization: { name: 'test organization' } },
 };
-
-const mockDepositReturns: ILeaseSecurityDepositReturn[] = [
-  {
-    id: 1,
-    parentDepositId: 7,
-    depositType: {
-      id: 'SECURITY',
-      description: 'Security deposit',
-      isDisabled: false,
-    },
-    terminationDate: '2022-02-01',
-    claimsAgainst: 1234.0,
-    returnAmount: 123.0,
-    returnDate: '2022-02-16',
-    payeeName: '',
-    payeeAddress: '',
-    rowVersion: 1,
-  },
-];
 
 jest.mock('@react-keycloak/web');
 (useKeycloak as jest.Mock).mockReturnValue({
@@ -112,11 +109,32 @@ describe('DepositsReturnedContainer component', () => {
     const dataRow = findFirstRow() as HTMLElement;
 
     expect(dataRow).not.toBeNull();
-    expect(findCell(dataRow, 0)?.textContent).toBe(depositReturn.depositType.description);
+    expect(findCell(dataRow, 0)?.textContent).toBe(mockDeposit.depositType.description);
     expect(findCell(dataRow, 1)?.textContent).toBe(prettyFormatDate(depositReturn.terminationDate));
     expect(findCell(dataRow, 2)?.textContent).toBe(formatMoney(mockDeposit.amountPaid));
     expect(findCell(dataRow, 3)?.textContent).toBe(formatMoney(depositReturn.claimsAgainst));
     expect(findCell(dataRow, 4)?.textContent).toBe(formatMoney(depositReturn.returnAmount));
-    expect(findCell(dataRow, 5)?.textContent).toBe(prettyFormatDate(depositReturn.returnDate));
+    expect(findCell(dataRow, 5)?.textContent).toBe(formatMoney(depositReturn.interestPaid));
+    expect(findCell(dataRow, 6)?.textContent).toBe(prettyFormatDate(depositReturn.returnDate));
+    expect(findCell(dataRow, 7)?.textContent).toBe(depositReturn.contactHolder?.organization?.name);
+  });
+
+  it('renders security deposit return holders as links', () => {
+    const depositReturn = mockDepositReturns[0];
+    const { getByText } = setup({
+      securityDeposits: [mockDeposit],
+      depositReturns: [
+        depositReturn,
+        {
+          ...depositReturn,
+          contactHolder: { id: 'P1', person: { firstName: 'test', surname: 'person' } },
+        },
+      ],
+      onEdit: mockCallback,
+      onDelete: mockCallback,
+    });
+
+    expect(getByText('test organization')).toHaveAttribute('href', '/contact/O3');
+    expect(getByText('test person')).toHaveAttribute('href', '/contact/P1');
   });
 });

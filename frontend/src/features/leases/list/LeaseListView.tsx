@@ -1,4 +1,4 @@
-import { Button } from 'components/common/form';
+import { Button, IconButton } from 'components/common/buttons';
 import TooltipWrapper from 'components/common/TooltipWrapper';
 import Claims from 'constants/claims';
 import { useApiLeases } from 'hooks/pims-api/useApiLeases';
@@ -8,6 +8,7 @@ import { ILeaseSearchResult } from 'interfaces';
 import { isEmpty } from 'lodash';
 import { useEffect } from 'react';
 import { useCallback } from 'react';
+import { Col, Row } from 'react-bootstrap';
 import { FaFileAlt, FaFileExcel } from 'react-icons/fa';
 import { FaPlus } from 'react-icons/fa';
 import { useHistory } from 'react-router';
@@ -23,7 +24,7 @@ import { LeaseSearchResults } from './LeaseSearchResults/LeaseSearchResults';
 import * as Styled from './styles';
 
 /**
- * Component that displays a list of leases within PSP as well as a filter bar to control the displayed leases.
+ * Page that displays leases information.
  */
 export const LeaseListView: React.FunctionComponent = () => {
   const history = useHistory();
@@ -34,6 +35,7 @@ export const LeaseListView: React.FunctionComponent = () => {
     filter,
     sort,
     error,
+    totalItems,
     currentPage,
     totalPages,
     pageSize,
@@ -41,6 +43,7 @@ export const LeaseListView: React.FunctionComponent = () => {
     setSort,
     setCurrentPage,
     setPageSize,
+    loading,
   } = useSearch<ILeaseSearchResult, ILeaseFilter>(defaultFilter, getLeases);
 
   const { exportLeases } = useLeaseExport();
@@ -81,19 +84,25 @@ export const LeaseListView: React.FunctionComponent = () => {
       <Styled.Scrollable>
         <Styled.PageHeader>Leases &amp; Licenses</Styled.PageHeader>
         <Styled.PageToolbar>
-          <LeaseFilter filter={filter} setFilter={changeFilter} />
-          <Styled.Spacer />
-          <TooltipWrapper toolTipId="export-to-excel" toolTip="Export to Excel">
-            <Styled.FileIcon>
-              <FaFileExcel data-testid="excel-icon" size={36} onClick={() => fetch('excel')} />
-            </Styled.FileIcon>
-          </TooltipWrapper>
-          <TooltipWrapper toolTipId="export-to-excel" toolTip="Export to CSV">
-            <Styled.FileIcon>
-              <FaFileAlt data-testid="csv-icon" size={36} onClick={() => fetch('csv')} />
-            </Styled.FileIcon>
-          </TooltipWrapper>
-          <Styled.Spacer />
+          <Row>
+            <Col>
+              <LeaseFilter filter={filter} setFilter={changeFilter} />
+            </Col>
+            <Col md="auto" className="px-0">
+              <TooltipWrapper toolTipId="export-to-excel" toolTip="Export to Excel">
+                <IconButton onClick={() => fetch('excel')}>
+                  <FaFileExcel data-testid="excel-icon" size={36} />
+                </IconButton>
+              </TooltipWrapper>
+            </Col>
+            <Col md="auto" className="px-0">
+              <TooltipWrapper toolTipId="export-to-excel" toolTip="Export to CSV">
+                <IconButton onClick={() => fetch('csv')}>
+                  <FaFileAlt data-testid="csv-icon" size={36} />
+                </IconButton>
+              </TooltipWrapper>
+            </Col>
+          </Row>
         </Styled.PageToolbar>
         {hasClaim(Claims.LEASE_ADD) && (
           <StyledAddButton onClick={() => history.push('/lease/new')}>
@@ -103,6 +112,7 @@ export const LeaseListView: React.FunctionComponent = () => {
         )}
         <LeaseSearchResults
           results={results}
+          totalItems={totalItems}
           pageIndex={currentPage}
           pageSize={pageSize}
           pageCount={totalPages}
@@ -110,14 +120,16 @@ export const LeaseListView: React.FunctionComponent = () => {
           setSort={setSort}
           setPageSize={setPageSize}
           setPageIndex={setCurrentPage}
+          loading={loading}
         />
       </Styled.Scrollable>
     </Styled.ListPage>
   );
 };
 
-export const StyledAddButton = styled(Button)`
-  &.btn.btn-primary {
+const StyledAddButton = styled(Button)`
+  &.btn.btn-primary,
+  &.btn.btn-primary:active {
     background-color: ${props => props.theme.css.completedColor};
   }
 `;

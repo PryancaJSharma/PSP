@@ -1,6 +1,8 @@
-import { PropertyTypes } from 'constants/index';
+import { DraftCircleNumber } from 'features/properties/selector/components/DraftCircleNumber';
 import { IProperty } from 'interfaces';
 import L, { DivIcon, GeoJSON, LatLngExpression, Layer, Map, Marker } from 'leaflet';
+import React from 'react';
+import ReactDOMServer from 'react-dom/server';
 import Supercluster from 'supercluster';
 
 import { ICluster, PointFeature } from '../types';
@@ -20,212 +22,6 @@ export const parcelIconSelect = L.icon({
   iconUrl:
     require('assets/images/pins/land-reg-highlight.png').default ??
     'assets/images/pins/land-reg-highlight.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// building icon (blue)
-export const buildingIcon = L.icon({
-  iconUrl:
-    require('assets/images/pins/building-reg.png').default ?? 'assets/images/pins/building-reg.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// building icon (blue) highlighted
-export const buildingIconSelect = L.icon({
-  iconUrl:
-    require('assets/images/pins/building-reg-highlight.png').default ??
-    'assets/images/pins/building-reg-highlight.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// subdivision icon (green)
-export const subdivisionIcon = L.icon({
-  iconUrl:
-    require('assets/images/pins/subdiv-reg.png').default ?? 'assets/images/pins/subdiv-reg.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// subdivision icon (green) highlighted
-export const subdivisionIconSelect = L.icon({
-  iconUrl:
-    require('assets/images/pins/subdiv-reg-highlight.png').default ??
-    'assets/images/pins/subdiv-reg-highlight.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// draft parcel icon (green)
-export const draftParcelIcon = L.icon({
-  iconUrl:
-    require('assets/images/pins/marker-green.png').default ?? 'assets/images/pins/marker-green.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  className: 'draft',
-});
-
-// draft building icon (blue)
-export const draftBuildingIcon = L.icon({
-  iconUrl:
-    require('assets/images/pins/marker-blue.png').default ?? 'assets/images/pins/marker-blue.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  className: 'draft',
-});
-
-// spp icon (purple)
-export const landSppIcon = L.icon({
-  iconUrl: require('assets/images/pins/land-spl.png').default ?? 'assets/images/pins/land-spl.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// spp icon (purple) highlighted
-export const landSppIconSelect = L.icon({
-  iconUrl:
-    require('assets/images/pins/land-spl-highlight.png').default ??
-    'assets/images/pins/land-spl-highlight.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// erp icon (red)
-export const landErpIcon = L.icon({
-  iconUrl: require('assets/images/pins/land-erp.png').default ?? 'assets/images/pins/land-erp.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// erp icon (red) highlight
-export const landErpIconSelect = L.icon({
-  iconUrl:
-    require('assets/images/pins/land-erp-highlight.png').default ??
-    'assets/images/pins/land-erp-highlight.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// spp icon (purple)
-export const buildingSppIcon = L.icon({
-  iconUrl:
-    require('assets/images/pins/building-spl.png').default ?? 'assets/images/pins/building-spl.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// spp icon (purple) highlight
-export const buildingSppIconSelect = L.icon({
-  iconUrl:
-    require('assets/images/pins/building-spl-highlight.png').default ??
-    'assets/images/pins/building-spl-highlight.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// erp icon (red)
-export const buildingErpIcon = L.icon({
-  iconUrl:
-    require('assets/images/pins/building-erp.png').default ?? 'assets/images/pins/building-erp.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// erp icon (red) highlighted
-export const buildingErpIconSelect = L.icon({
-  iconUrl:
-    require('assets/images/pins/building-erp-highlight.png').default ??
-    'assets/images/pins/building-erp-highlight.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// spp icon (purple)
-export const subdivisionSppIcon = L.icon({
-  iconUrl:
-    require('assets/images/pins/subdiv-spl.png').default ?? 'assets/images/pins/subdiv-spl.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// spp icon (purple) highlighted
-export const subdivisionSppIconSelect = L.icon({
-  iconUrl:
-    require('assets/images/pins/subdiv-spl-highlight.png').default ??
-    'assets/images/pins/subdiv-spl-highlight.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// erp icon (red)
-export const subdivisionErpIcon = L.icon({
-  iconUrl:
-    require('assets/images/pins/subdiv-erp.png').default ?? 'assets/images/pins/subdiv-erp.png',
-  shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// erp icon (red) highlight
-export const subdivisionErpIconSelect = L.icon({
-  iconUrl:
-    require('assets/images/pins/subdiv-erp-highlight.png').default ??
-    'assets/images/pins/subdiv-erp-highlight.png',
   shadowUrl: require('assets/images/pins/marker-shadow.png').default ?? 'marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -264,7 +60,7 @@ export const pointToLayer = (feature: ICluster, latlng: LatLngExpression): Layer
   if (!!isCluster) {
     return createClusterMarker(feature, latlng);
   }
-  // we have a single point (parcel or building) to render
+  // we have a single point to render
   return createSingleMarker(feature, latlng);
 };
 
@@ -272,32 +68,25 @@ export const pointToLayer = (feature: ICluster, latlng: LatLngExpression): Layer
  * Get an icon type for the specified cluster property details (type, draft, erp, spp etc)
  */
 export const getMarkerIcon = (feature: ICluster, selected?: boolean) => {
-  const { propertyTypeId } = feature?.properties;
-  if (propertyTypeId === PropertyTypes.DraftLand) {
-    return draftParcelIcon;
-  } else if (propertyTypeId === PropertyTypes.DraftBuilding) {
-    return draftBuildingIcon;
-  } else if (selected) {
-    if (propertyTypeId === PropertyTypes.Land) {
-      return parcelIconSelect;
-    } else if (propertyTypeId === PropertyTypes.Subdivision) {
-      return subdivisionIconSelect;
-    } else {
-      return buildingIconSelect;
-    }
-  } else {
-    if (propertyTypeId === PropertyTypes.Land) {
-      return parcelIcon;
-    } else if (propertyTypeId === PropertyTypes.Subdivision) {
-      return subdivisionIcon;
-    } else {
-      return buildingIcon;
-    }
+  if (selected) {
+    return parcelIconSelect;
   }
+  return parcelIcon;
+};
+
+// parcel icon (green) highlighted
+export const getDraftIcon = (text: string) => {
+  return L.divIcon({
+    iconSize: [29, 45],
+    iconAnchor: [15, 45],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+    html: ReactDOMServer.renderToStaticMarkup(<DraftCircleNumber text={text} />),
+  });
 };
 
 /**
- * Creates a map pin for a single point; e.g. a parcel or a building
+ * Creates a map pin for a single point; e.g. a parcel
  * @param feature the geojson object
  * @param latlng the point position
  */
@@ -347,18 +136,16 @@ export const zoomToCluster = (cluster: ICluster, expansionZoom: number, map: Map
 };
 
 // we need to namespace the keys as IDs are not enough here.
-// the same ID could be found on both the parcel collection and building collection
-export const generateKey = (p: IProperty) =>
-  `${p.propertyTypeId === PropertyTypes.Land ? 'parcel' : 'building'}-${p.id}`;
+// the same ID could be found on both the parcel collection and
+export const generateKey = (p: IProperty) => `parcel-${p.id}`;
 
 /** Creates a IProperty object from a GeoJSON point */
 export const asProperty = (point: PointFeature): IProperty => {
-  const { id, propertyTypeId, name } = point?.properties;
+  const { id, name } = point?.properties;
   const latlng = GeoJSON.coordsToLatLng(point?.geometry?.coordinates as [number, number]);
   return {
     ...point.properties,
     id,
-    propertyTypeId,
     latitude: latlng.lat,
     longitude: latlng.lng,
     name,
@@ -368,18 +155,32 @@ export const asProperty = (point: PointFeature): IProperty => {
 /**
  * Convert any object to a cql filter string, assuming the object's keys should be used as CQL filter properties.
  * AND all object keys together within the generated cql filter string.
+ *
+ * The resulting filter is URL-encoded
  * @param object an object to convert to a cql filter string.
  */
-export const toCqlFilter = (object: any) => {
+export const toCqlFilter = (object: any, pidOverride?: boolean) => {
+  const cqlValue: string = toCqlFilterValue(object, pidOverride);
+  return cqlValue.length ? `cql_filter=${encodeURIComponent(cqlValue)}` : '';
+};
+
+/**
+ * Convert any object to a cql filter string value, assuming the object's keys should be used as CQL filter properties.
+ * NOTE: The resulting string value is left as-is. It will not be URL-encoded
+ * @param object an object to convert to a cql filter string.
+ */
+export const toCqlFilterValue = (object: any, pidOverride?: boolean) => {
   const cql: string[] = [];
   Object.keys(object).forEach((key: string) => {
     if (object[key]) {
-      if (key === 'PID' && object[key]) {
-        cql.push(`PIN ilike '%25${object[key]}%25' OR PID ilike '%25${object[key]}%25'`);
+      if (key === 'PID' || (key === 'PID_PADDED' && object[key] && !pidOverride)) {
+        cql.push(
+          `PIN ilike '%${object[key]}%' OR PID ilike '%${object[key]}%'  OR PID_PADDED ilike '%${object[key]}%'`,
+        );
       } else {
-        cql.push(`${key} ilike '%25${object[key]}%25'`);
+        cql.push(`${key} ilike '%${object[key]}%'`);
       }
     }
   });
-  return cql.length ? `cql_filter=${cql.join(' AND ')}` : '';
+  return cql.length ? cql.join(' AND ') : '';
 };

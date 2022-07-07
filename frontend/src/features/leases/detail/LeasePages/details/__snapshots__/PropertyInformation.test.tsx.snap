@@ -8,7 +8,16 @@ exports[`PropertyInformation component renders a complete lease as expected 1`] 
   <div
     class="Toastify"
   />
-  .c0 {
+  .c2:not(:first-child) {
+  padding-left: 0;
+}
+
+.c2:not(:first-child) .form-control {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.c0 {
   font-family: 'BcSans-Bold';
   font-size: 2rem;
   margin-bottom: 1rem;
@@ -82,31 +91,77 @@ exports[`PropertyInformation component renders a complete lease as expected 1`] 
       >
         <input
           class="form-control"
-          id="input-properties.address.province"
-          name="properties.address.province"
-          value=""
+          id="input-properties.0.address.streetAddress1"
+          name="properties.0.address.streetAddress1"
+          title="1234 mock Street"
+          value="1234 mock Street"
+        />
+      </div>
+      <div
+        class="input form-group"
+      >
+        <input
+          class="form-control"
+          id="input-properties.0.address.streetAddress2"
+          name="properties.0.address.streetAddress2"
+          title="N/A"
+          value="N/A"
+        />
+      </div>
+      <div
+        class="input form-group"
+      >
+        <input
+          class="form-control"
+          id="input-properties.0.address.municipality"
+          name="properties.0.address.municipality"
+          title="Victoria"
+          value="Victoria"
+        />
+      </div>
+      <div
+        class="input form-group"
+      >
+        <input
+          class="form-control"
+          id="input-properties.0.address.postal"
+          name="properties.0.address.postal"
+          title="V1V1V1"
+          value="V1V1V1"
+        />
+      </div>
+      <div
+        class="input form-group"
+      >
+        <input
+          class="form-control"
+          id="input-properties.0.address.province"
+          name="properties.0.address.province"
+          title="BC"
+          value="BC"
         />
       </div>
       <br />
       <label
         class="form-label"
       >
-        Area
+        Lease Area
       </label>
       <div
-        class="input-group"
+        class="flex-nowrap row"
       >
         <div
-          class="input-group-content"
+          class="c2 col"
         >
           <div
             class="input form-group"
           >
             <input
               class="form-control"
-              id="input-properties.landArea"
-              name="properties.landArea"
-              value=""
+              id="input-properties.0.landArea"
+              name="properties.0.landArea"
+              title="123"
+              value="123"
             />
           </div>
         </div>
@@ -124,7 +179,16 @@ exports[`PropertyInformation component renders minimally as expected 1`] = `
   <div
     class="Toastify"
   />
-  .c0 {
+  .c2:not(:first-child) {
+  padding-left: 0;
+}
+
+.c2:not(:first-child) .form-control {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.c0 {
   font-family: 'BcSans-Bold';
   font-size: 2rem;
   margin-bottom: 1rem;
@@ -198,31 +262,77 @@ exports[`PropertyInformation component renders minimally as expected 1`] = `
       >
         <input
           class="form-control"
-          id="input-properties.address.province"
-          name="properties.address.province"
-          value=""
+          id="input-properties.0.address.streetAddress1"
+          name="properties.0.address.streetAddress1"
+          title="1234 mock Street"
+          value="1234 mock Street"
+        />
+      </div>
+      <div
+        class="input form-group"
+      >
+        <input
+          class="form-control"
+          id="input-properties.0.address.streetAddress2"
+          name="properties.0.address.streetAddress2"
+          title="N/A"
+          value="N/A"
+        />
+      </div>
+      <div
+        class="input form-group"
+      >
+        <input
+          class="form-control"
+          id="input-properties.0.address.municipality"
+          name="properties.0.address.municipality"
+          title="Victoria"
+          value="Victoria"
+        />
+      </div>
+      <div
+        class="input form-group"
+      >
+        <input
+          class="form-control"
+          id="input-properties.0.address.postal"
+          name="properties.0.address.postal"
+          title="V1V1V1"
+          value="V1V1V1"
+        />
+      </div>
+      <div
+        class="input form-group"
+      >
+        <input
+          class="form-control"
+          id="input-properties.0.address.province"
+          name="properties.0.address.province"
+          title="BC"
+          value="BC"
         />
       </div>
       <br />
       <label
         class="form-label"
       >
-        Area
+        Lease Area
       </label>
       <div
-        class="input-group"
+        class="flex-nowrap row"
       >
         <div
-          class="input-group-content"
+          class="c2 col"
         >
           <div
             class="input form-group"
           >
             <input
               class="form-control"
-              id="input-properties.landArea"
-              name="properties.landArea"
-              value=""
+              id="input-properties.0.landArea"
+              name="properties.0.landArea"
+              title="123"
+              value="123"
             />
           </div>
         </div>

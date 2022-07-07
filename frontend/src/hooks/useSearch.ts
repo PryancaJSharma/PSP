@@ -1,9 +1,11 @@
 import { AxiosResponse } from 'axios';
-import { TableSort } from 'components/Table/TableSort';
+import { SortDirection, TableSort } from 'components/Table/TableSort';
 import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
 import useIsMounted from 'hooks/useIsMounted';
 import { IPagedItems } from 'interfaces';
 import { useCallback, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { hideLoading, showLoading } from 'react-redux-loading-bar';
 import { toast } from 'react-toastify';
 
 import { IPaginateRequest } from './pims-api';
@@ -59,6 +61,7 @@ export function useSearch<ISearchResult extends object, IFilter extends object>(
   const searchFn = useFetcher<ISearchResult, IFilter>(apiCall);
   // is this component/hook mounted?
   const isMounted = useIsMounted();
+  const dispatch = useDispatch();
 
   const setSearchOutput = useCallback(
     (apiResponse?: IPagedItems<ISearchResult>, pageSize = 10) => {
@@ -83,11 +86,14 @@ export function useSearch<ISearchResult extends object, IFilter extends object>(
 
   // update search results whenever new data comes back from API endpoints
   useDeepCompareEffect(() => {
-    if (!filter) return;
+    if (!filter) {
+      return;
+    }
 
     async function callApi() {
       try {
         setLoading(true);
+        dispatch(showLoading());
         const { data } = await searchFn(filter, sort, currentPage, pageSize);
         if (isMounted()) {
           setSearchOutput(data, pageSize);
@@ -100,6 +106,7 @@ export function useSearch<ISearchResult extends object, IFilter extends object>(
         }
       } finally {
         setLoading(false);
+        dispatch(hideLoading());
       }
     }
 
@@ -128,3 +135,24 @@ export function useSearch<ISearchResult extends object, IFilter extends object>(
     execute: useCallback(execute, []),
   };
 }
+
+// results sort handler
+export const handleSortChange = <Result extends Object>(
+  column: string,
+  nextSortDirection: SortDirection,
+  sort: TableSort<Result>,
+  setSort?: (result: TableSort<Result>) => void,
+) => {
+  if (!setSort) return null;
+
+  let nextSort: TableSort<Result>;
+
+  // add new column to sort criteria
+  if (nextSortDirection) {
+    nextSort = { [column]: nextSortDirection } as any;
+  } else {
+    // remove column from sort criteria
+    nextSort = {};
+  }
+  setSort(nextSort);
+};

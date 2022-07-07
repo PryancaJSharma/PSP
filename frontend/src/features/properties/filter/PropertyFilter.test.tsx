@@ -1,19 +1,15 @@
 import { useKeycloak } from '@react-keycloak/web';
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import axios from 'axios';
 import * as API from 'constants/API';
-import { usePropertyNames } from 'features/properties/common/slices/usePropertyNames';
 import { createMemoryHistory } from 'history';
-import { Provider } from 'react-redux';
-import { Router } from 'react-router-dom';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import filterSlice from 'store/slices/filter/filterSlice';
 import { ILookupCode, lookupCodesSlice } from 'store/slices/lookupCodes';
-import { TenantProvider } from 'tenants';
+import { cleanup, fireEvent, render, waitFor } from 'utils/test-utils';
 import { fillInput } from 'utils/test-utils';
+import TestCommonWrapper from 'utils/TestCommonWrapper';
 
-import propertyNameSlice from '../common/slices/propertyNameSlice';
 import { PropertyFilter } from '.';
 import { IPropertyFilter } from './IPropertyFilter';
 
@@ -21,12 +17,6 @@ const onFilterChange = jest.fn<void, [IPropertyFilter]>();
 //prevent web calls from being made during tests.
 jest.mock('axios');
 jest.mock('@react-keycloak/web');
-jest.mock('features/properties/common/slices/usePropertyNames');
-
-const fetchPropertyNames = jest.fn(() => Promise.resolve(['test']));
-(usePropertyNames as any).mockImplementation(() => ({
-  fetchPropertyNames,
-}));
 
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 const mockKeycloak = (claims: string[]) => {
@@ -45,8 +35,6 @@ let history = createMemoryHistory();
 
 const lCodes = {
   lookupCodes: [
-    { id: 1, name: 'organizationVal', isDisabled: false, type: API.ORGANIZATION_TYPES },
-    { id: 2, name: 'disabledOrganization', isDisabled: true, type: API.ORGANIZATION_TYPES },
     { id: 1, name: 'roleVal', isDisabled: false, type: API.ROLE_TYPES },
     { id: 2, name: 'disabledRole', isDisabled: true, type: API.ROLE_TYPES },
     {
@@ -85,7 +73,6 @@ const lCodes = {
 const getStore = (filter: any) =>
   mockStore({
     [filterSlice.name]: filter,
-    [propertyNameSlice.name]: ['test'],
     [lookupCodesSlice.name]: lCodes,
   });
 
@@ -96,13 +83,9 @@ const defaultFilter: IPropertyFilter = {
 };
 
 const getUiElement = (filter: IPropertyFilter, showAllOrganizationSelect = true) => (
-  <TenantProvider>
-    <Provider store={getStore(filter)}>
-      <Router history={history}>
-        <PropertyFilter defaultFilter={filter} onChange={onFilterChange} />
-      </Router>
-    </Provider>
-  </TenantProvider>
+  <TestCommonWrapper store={getStore(filter)} history={history}>
+    <PropertyFilter defaultFilter={filter} onChange={onFilterChange} />
+  </TestCommonWrapper>
 );
 
 describe('MapFilterBar', () => {

@@ -12,26 +12,31 @@ namespace Pims.Dal.Entities
     [Table("PIMS_PROPERTY")]
     [Index(nameof(AddressId), Name = "PRPRTY_ADDRESS_ID_IDX")]
     [Index(nameof(DistrictCode), Name = "PRPRTY_DISTRICT_CODE_IDX")]
+    [Index(nameof(PphStatusTypeCode), Name = "PRPRTY_PPH_STATUS_TYPE_CODE_IDX")]
     [Index(nameof(PropertyAreaUnitTypeCode), Name = "PRPRTY_PROPERTY_AREA_UNIT_TYPE_CODE_IDX")]
     [Index(nameof(PropertyClassificationTypeCode), Name = "PRPRTY_PROPERTY_CLASSIFICATION_TYPE_CODE_IDX")]
     [Index(nameof(PropertyDataSourceTypeCode), Name = "PRPRTY_PROPERTY_DATA_SOURCE_TYPE_CODE_IDX")]
     [Index(nameof(PropertyManagerId), Name = "PRPRTY_PROPERTY_MANAGER_ID_IDX")]
     [Index(nameof(PropertyStatusTypeCode), Name = "PRPRTY_PROPERTY_STATUS_TYPE_CODE_IDX")]
-    [Index(nameof(PropertyTenureTypeCode), Name = "PRPRTY_PROPERTY_TENURE_TYPE_CODE_IDX")]
     [Index(nameof(PropertyTypeCode), Name = "PRPRTY_PROPERTY_TYPE_CODE_IDX")]
     [Index(nameof(PropMgmtOrgId), Name = "PRPRTY_PROP_MGMT_ORG_ID_IDX")]
     [Index(nameof(RegionCode), Name = "PRPRTY_REGION_CODE_IDX")]
     [Index(nameof(SurplusDeclarationTypeCode), Name = "PRPRTY_SURPLUS_DECLARATION_TYPE_CODE_IDX")]
+    [Index(nameof(VolumetricTypeCode), Name = "PRPRTY_VOLUMETRIC_TYPE_CODE_IDX")]
+    [Index(nameof(VolumeUnitTypeCode), Name = "PRPRTY_VOLUME_UNIT_TYPE_CODE_IDX")]
     public partial class PimsProperty
     {
         public PimsProperty()
         {
-            PimsProjectProperties = new HashSet<PimsProjectProperty>();
-            PimsPropertyActivities = new HashSet<PimsPropertyActivity>();
+            PimsPropPropAdjacentLandTypes = new HashSet<PimsPropPropAdjacentLandType>();
+            PimsPropPropAnomalyTypes = new HashSet<PimsPropPropAnomalyType>();
+            PimsPropPropRoadTypes = new HashSet<PimsPropPropRoadType>();
+            PimsPropPropTenureTypes = new HashSet<PimsPropPropTenureType>();
             PimsPropertyEvaluations = new HashSet<PimsPropertyEvaluation>();
             PimsPropertyLeases = new HashSet<PimsPropertyLease>();
             PimsPropertyOrganizations = new HashSet<PimsPropertyOrganization>();
             PimsPropertyPropertyServiceFiles = new HashSet<PimsPropertyPropertyServiceFile>();
+            PimsPropertyResearchFiles = new HashSet<PimsPropertyResearchFile>();
             PimsPropertyTaxes = new HashSet<PimsPropertyTax>();
         }
 
@@ -51,19 +56,18 @@ namespace Pims.Dal.Entities
         [StringLength(20)]
         public string PropertyClassificationTypeCode { get; set; }
         [Column("ADDRESS_ID")]
-        public long AddressId { get; set; }
+        public long? AddressId { get; set; }
         [Column("REGION_CODE")]
         public short RegionCode { get; set; }
         [Column("DISTRICT_CODE")]
         public short DistrictCode { get; set; }
-        [Required]
-        [Column("PROPERTY_TENURE_TYPE_CODE")]
-        [StringLength(20)]
-        public string PropertyTenureTypeCode { get; set; }
-        [Required]
         [Column("PROPERTY_AREA_UNIT_TYPE_CODE")]
         [StringLength(20)]
         public string PropertyAreaUnitTypeCode { get; set; }
+        [Required]
+        [Column("PROPERTY_DATA_SOURCE_TYPE_CODE")]
+        [StringLength(20)]
+        public string PropertyDataSourceTypeCode { get; set; }
         [Required]
         [Column("PROPERTY_STATUS_TYPE_CODE")]
         [StringLength(20)]
@@ -72,10 +76,15 @@ namespace Pims.Dal.Entities
         [Column("SURPLUS_DECLARATION_TYPE_CODE")]
         [StringLength(20)]
         public string SurplusDeclarationTypeCode { get; set; }
-        [Required]
-        [Column("PROPERTY_DATA_SOURCE_TYPE_CODE")]
+        [Column("VOLUMETRIC_TYPE_CODE")]
         [StringLength(20)]
-        public string PropertyDataSourceTypeCode { get; set; }
+        public string VolumetricTypeCode { get; set; }
+        [Column("VOLUME_UNIT_TYPE_CODE")]
+        [StringLength(20)]
+        public string VolumeUnitTypeCode { get; set; }
+        [Column("PPH_STATUS_TYPE_CODE")]
+        [StringLength(20)]
+        public string PphStatusTypeCode { get; set; }
         [Column("PROPERTY_DATA_SOURCE_EFFECTIVE_DATE", TypeName = "date")]
         public DateTime PropertyDataSourceEffectiveDate { get; set; }
         [Column("NAME")]
@@ -88,6 +97,11 @@ namespace Pims.Dal.Entities
         public int? Pid { get; set; }
         [Column("PIN")]
         public int? Pin { get; set; }
+        [Column("FILE_NUMBER")]
+        public int? FileNumber { get; set; }
+        [Column("FILE_NUMBER_SUFFIX")]
+        [StringLength(2)]
+        public string FileNumberSuffix { get; set; }
         [Column("LAND_AREA")]
         public float? LandArea { get; set; }
         [Column("LAND_LEGAL_DESCRIPTION")]
@@ -104,6 +118,15 @@ namespace Pims.Dal.Entities
         public string SurplusDeclarationComment { get; set; }
         [Column("SURPLUS_DECLARATION_DATE", TypeName = "datetime")]
         public DateTime? SurplusDeclarationDate { get; set; }
+        [Column("NOTES")]
+        public string Notes { get; set; }
+        [Column("MUNICIPAL_ZONING")]
+        [StringLength(100)]
+        public string MunicipalZoning { get; set; }
+        [Column("IS_VOLUMETRIC_PARCEL")]
+        public bool? IsVolumetricParcel { get; set; }
+        [Column("VOLUMETRIC_MEASUREMENT")]
+        public float? VolumetricMeasurement { get; set; }
         [Required]
         [Column("IS_OWNED")]
         public bool? IsOwned { get; set; }
@@ -116,6 +139,17 @@ namespace Pims.Dal.Entities
         [Required]
         [Column("IS_SENSITIVE")]
         public bool? IsSensitive { get; set; }
+        [Column("IS_PROVINCIAL_PUBLIC_HWY")]
+        public bool? IsProvincialPublicHwy { get; set; }
+        [Column("PPH_STATUS_UPDATE_USERID")]
+        [StringLength(30)]
+        public string PphStatusUpdateUserid { get; set; }
+        [Column("PPH_STATUS_UPDATE_TIMESTAMP", TypeName = "datetime")]
+        public DateTime? PphStatusUpdateTimestamp { get; set; }
+        [Column("PPH_STATUS_UPDATE_USER_GUID")]
+        public Guid? PphStatusUpdateUserGuid { get; set; }
+        [Column("IS_RWY_BELT_DOM_PATENT")]
+        public bool? IsRwyBeltDomPatent { get; set; }
         [Column("ZONING")]
         [StringLength(50)]
         public string Zoning { get; set; }
@@ -167,6 +201,9 @@ namespace Pims.Dal.Entities
         [ForeignKey(nameof(DistrictCode))]
         [InverseProperty(nameof(PimsDistrict.PimsProperties))]
         public virtual PimsDistrict DistrictCodeNavigation { get; set; }
+        [ForeignKey(nameof(PphStatusTypeCode))]
+        [InverseProperty(nameof(PimsPphStatusType.PimsProperties))]
+        public virtual PimsPphStatusType PphStatusTypeCodeNavigation { get; set; }
         [ForeignKey(nameof(PropMgmtOrgId))]
         [InverseProperty(nameof(PimsOrganization.PimsProperties))]
         public virtual PimsOrganization PropMgmtOrg { get; set; }
@@ -185,9 +222,6 @@ namespace Pims.Dal.Entities
         [ForeignKey(nameof(PropertyStatusTypeCode))]
         [InverseProperty(nameof(PimsPropertyStatusType.PimsProperties))]
         public virtual PimsPropertyStatusType PropertyStatusTypeCodeNavigation { get; set; }
-        [ForeignKey(nameof(PropertyTenureTypeCode))]
-        [InverseProperty(nameof(PimsPropertyTenureType.PimsProperties))]
-        public virtual PimsPropertyTenureType PropertyTenureTypeCodeNavigation { get; set; }
         [ForeignKey(nameof(PropertyTypeCode))]
         [InverseProperty(nameof(PimsPropertyType.PimsProperties))]
         public virtual PimsPropertyType PropertyTypeCodeNavigation { get; set; }
@@ -197,10 +231,20 @@ namespace Pims.Dal.Entities
         [ForeignKey(nameof(SurplusDeclarationTypeCode))]
         [InverseProperty(nameof(PimsSurplusDeclarationType.PimsProperties))]
         public virtual PimsSurplusDeclarationType SurplusDeclarationTypeCodeNavigation { get; set; }
-        [InverseProperty(nameof(PimsProjectProperty.Property))]
-        public virtual ICollection<PimsProjectProperty> PimsProjectProperties { get; set; }
-        [InverseProperty(nameof(PimsPropertyActivity.Property))]
-        public virtual ICollection<PimsPropertyActivity> PimsPropertyActivities { get; set; }
+        [ForeignKey(nameof(VolumeUnitTypeCode))]
+        [InverseProperty(nameof(PimsVolumeUnitType.PimsProperties))]
+        public virtual PimsVolumeUnitType VolumeUnitTypeCodeNavigation { get; set; }
+        [ForeignKey(nameof(VolumetricTypeCode))]
+        [InverseProperty(nameof(PimsVolumetricType.PimsProperties))]
+        public virtual PimsVolumetricType VolumetricTypeCodeNavigation { get; set; }
+        [InverseProperty(nameof(PimsPropPropAdjacentLandType.Property))]
+        public virtual ICollection<PimsPropPropAdjacentLandType> PimsPropPropAdjacentLandTypes { get; set; }
+        [InverseProperty(nameof(PimsPropPropAnomalyType.Property))]
+        public virtual ICollection<PimsPropPropAnomalyType> PimsPropPropAnomalyTypes { get; set; }
+        [InverseProperty(nameof(PimsPropPropRoadType.Property))]
+        public virtual ICollection<PimsPropPropRoadType> PimsPropPropRoadTypes { get; set; }
+        [InverseProperty(nameof(PimsPropPropTenureType.Property))]
+        public virtual ICollection<PimsPropPropTenureType> PimsPropPropTenureTypes { get; set; }
         [InverseProperty(nameof(PimsPropertyEvaluation.Property))]
         public virtual ICollection<PimsPropertyEvaluation> PimsPropertyEvaluations { get; set; }
         [InverseProperty(nameof(PimsPropertyLease.Property))]
@@ -209,6 +253,8 @@ namespace Pims.Dal.Entities
         public virtual ICollection<PimsPropertyOrganization> PimsPropertyOrganizations { get; set; }
         [InverseProperty(nameof(PimsPropertyPropertyServiceFile.Property))]
         public virtual ICollection<PimsPropertyPropertyServiceFile> PimsPropertyPropertyServiceFiles { get; set; }
+        [InverseProperty(nameof(PimsPropertyResearchFile.Property))]
+        public virtual ICollection<PimsPropertyResearchFile> PimsPropertyResearchFiles { get; set; }
         [InverseProperty(nameof(PimsPropertyTax.Property))]
         public virtual ICollection<PimsPropertyTax> PimsPropertyTaxes { get; set; }
     }

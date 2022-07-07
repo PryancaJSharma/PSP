@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pims.Api.Areas.Lease.Controllers;
 using Pims.Api.Helpers.Exceptions;
-using Pims.Core.Comparers;
 using Pims.Core.Test;
 using Pims.Dal;
 using Pims.Dal.Entities.Models;
@@ -15,6 +14,7 @@ using System.Diagnostics.CodeAnalysis;
 using Xunit;
 using Entity = Pims.Dal.Entities;
 using SModel = Pims.Api.Areas.Lease.Models.Search;
+using FluentAssertions;
 
 namespace Pims.Api.Test.Controllers.Lease
 {
@@ -41,17 +41,17 @@ namespace Pims.Api.Test.Controllers.Lease
         #endregion
 
         #region Tests
-        #region GetProperties
+        #region GetLeases
         /// <summary>
         /// Make a successful request that includes the latitude.
         /// </summary>
         [Theory]
         [MemberData(nameof(LeaseFilters))]
-        public void GetProperties_All_Success(SModel.LeaseFilterModel filter)
+        public void GetLeases_All_Success(SModel.LeaseFilterModel filter)
         {
             // Arrange
             var helper = new TestHelper();
-            var controller = helper.CreateController<SearchController>(Permissions.PropertyView);
+            var controller = helper.CreateController<SearchController>(Permissions.LeaseView);
 
             var leases = new[] { EntityHelper.CreateLease(1) };
 
@@ -67,7 +67,7 @@ namespace Pims.Api.Test.Controllers.Lease
             var actionResult = Assert.IsType<JsonResult>(result);
             var actualResult = Assert.IsType<Models.PageModel<SModel.LeaseModel>>(actionResult.Value);
             var expectedResult = mapper.Map<Models.PageModel<SModel.LeaseModel>>(new Paged<Entity.PimsLease>(leases));
-            Assert.Equal(expectedResult, actualResult, new DeepPropertyCompare());
+            expectedResult.Should().BeEquivalentTo(actualResult);
             service.Verify(m => m.Lease.GetPage(It.IsAny<LeaseFilter>()), Times.Once());
         }
 
@@ -80,7 +80,7 @@ namespace Pims.Api.Test.Controllers.Lease
         {
             // Arrange
             var helper = new TestHelper();
-            var controller = helper.CreateController<SearchController>(Permissions.PropertyView, uri);
+            var controller = helper.CreateController<SearchController>(Permissions.LeaseView, uri);
 
             var leases = new[] { EntityHelper.CreateLease(1) };
 
@@ -96,7 +96,7 @@ namespace Pims.Api.Test.Controllers.Lease
             var actionResult = Assert.IsType<JsonResult>(result);
             var actualResult = Assert.IsType<Models.PageModel<SModel.LeaseModel>>(actionResult.Value);
             var expectedResult = mapper.Map<Models.PageModel<SModel.LeaseModel>>(new Paged<Entity.PimsLease>(leases));
-            Assert.Equal(expectedResult, actualResult, new DeepPropertyCompare());
+            expectedResult.Should().BeEquivalentTo(actualResult);
             service.Verify(m => m.Lease.GetPage(It.IsAny<LeaseFilter>()), Times.Once());
         }
 
@@ -108,7 +108,7 @@ namespace Pims.Api.Test.Controllers.Lease
         {
             // Arrange
             var helper = new TestHelper();
-            var controller = helper.CreateController<SearchController>(Permissions.PropertyView);
+            var controller = helper.CreateController<SearchController>(Permissions.LeaseView);
             var request = helper.GetService<Mock<HttpRequest>>();
             request.Setup(m => m.QueryString).Returns(new QueryString("?page=0"));
 
@@ -128,7 +128,7 @@ namespace Pims.Api.Test.Controllers.Lease
         {
             // Arrange
             var helper = new TestHelper();
-            var controller = helper.CreateController<SearchController>(Permissions.PropertyView);
+            var controller = helper.CreateController<SearchController>(Permissions.LeaseView);
 
             var service = helper.GetService<Mock<IPimsRepository>>();
 

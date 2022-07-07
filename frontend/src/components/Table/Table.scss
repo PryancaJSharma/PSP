@@ -1,5 +1,5 @@
-@import '../../styles.scss';
-@import '../../colors.scss';
+@import '~assets/scss/styles.scss';
+@import '~assets/scss/colors.scss';
 .table {
   .thead-light {
     .th {
@@ -53,6 +53,35 @@
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
   }
+
+  .svg-btn {
+    color: $text-color;
+  }
+
+  .svg-btn:hover {
+    color: $icon-light-color;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .svg-btn:hover svg {
+    fill: $icon-light-color;
+    stroke: #fff;
+  }
+
+  .svg-btn.active {
+    color: $icon-light-color;
+    border-bottom-style: solid;
+    border-bottom-color: $accent-color;
+    border-bottom-width: 0.1rem;
+    background-color: none !important;
+  }
+
+  .svg-btn.active svg {
+    fill: $icon-light-color;
+    stroke: #fff;
+  }
+
   .td,
   .th {
     min-height: 5rem;
@@ -115,19 +144,6 @@
       &.active {
         color: $active-color;
       }
-    }
-  }
-}
-
-.table-toolbar {
-  display: flex;
-  flex-direction: row-reverse;
-  align-content: center;
-  align-items: baseline;
-  div {
-    .Menu-root {
-      margin-top: 0.5rem;
-      margin-right: 3rem;
     }
   }
 }

@@ -1,12 +1,14 @@
-import variables from '_variables.module.scss';
-import * as React from 'react';
+import variables from 'assets/scss/_variables.module.scss';
+import { has } from 'lodash';
 import { IoMdArrowDropdown, IoMdArrowDropup } from 'react-icons/io';
 import styled from 'styled-components';
 
 import { ColumnInstanceWithProps } from '.';
+import { TableSort } from './TableSort';
 
 interface IColumnSortProps<T extends object = {}> {
   column: ColumnInstanceWithProps<T>;
+  sort?: TableSort<T>;
   onSort: () => void;
 }
 
@@ -34,17 +36,18 @@ const Up = styled(IoMdArrowDropup)<Props>`
   height: 1.6rem;
 `;
 
-function ColumnSort<T extends object = {}>({ column, onSort }: IColumnSortProps<T>) {
+function ColumnSort<T extends object = {}>({ column, onSort, sort }: IColumnSortProps<T>) {
   if (!column.sortable) {
     return null;
   }
 
+  const overrideSort = has(sort, column.id);
   return (
     <Wrapper onClick={onSort}>
-      {column.isSorted && !column.isSortedDesc && <Up $active={true} />}
-      {column.isSorted && column.isSortedDesc && <Down $active={true} />}
+      {overrideSort && column.isSorted && !column.isSortedDesc && <Up $active={true} />}
+      {overrideSort && column.isSorted && column.isSortedDesc && <Down $active={true} />}
 
-      {!column.isSorted && (
+      {(!column.isSorted || !overrideSort) && (
         <>
           <Up style={{ marginBottom: -8 }} />
           <Down />

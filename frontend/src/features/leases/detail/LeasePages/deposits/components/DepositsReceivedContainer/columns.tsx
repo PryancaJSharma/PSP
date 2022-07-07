@@ -1,13 +1,18 @@
-import { Button } from 'components/common/form';
+import { Button } from 'components/common/buttons/Button';
 import { InlineFlexDiv } from 'components/common/styles';
+import TooltipIcon from 'components/common/TooltipIcon';
 import { ColumnWithProps, renderDate, renderMoney } from 'components/Table';
 import Claims from 'constants/claims';
 import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
-import { ILeaseSecurityDeposit, IOrganization, IPerson } from 'interfaces';
+import { Api_Contact } from 'models/api/Contact';
+import { Api_SecurityDeposit } from 'models/api/SecurityDeposit';
+import React from 'react';
 import { FaTrash } from 'react-icons/fa';
 import { MdEdit, MdUndo } from 'react-icons/md';
+import { Link } from 'react-router-dom';
 import { CellProps } from 'react-table';
 import styled from 'styled-components';
+import { formatNames } from 'utils/personUtils';
 
 export class DepositListEntry {
   public id: number;
@@ -15,11 +20,10 @@ export class DepositListEntry {
   public depositDescription: string;
   public amountPaid: number;
   public paidDate: string;
-  public personDepositHolder?: IPerson;
-  public organizationDepositHolder?: IOrganization;
+  public contactHolder?: Api_Contact;
   public depositReturnCount: number;
 
-  public constructor(baseDeposit: ILeaseSecurityDeposit, depositReturnCount: number) {
+  public constructor(baseDeposit: Api_SecurityDeposit) {
     this.id = baseDeposit.id || -1;
     if (baseDeposit.depositType.id === 'OTHER') {
       this.depositTypeDescription = (baseDeposit.otherTypeDescription || '') + ' (Other)';
@@ -29,14 +33,26 @@ export class DepositListEntry {
     this.depositDescription = baseDeposit.description;
     this.amountPaid = baseDeposit.amountPaid;
     this.paidDate = baseDeposit.depositDate || '';
-    this.personDepositHolder = baseDeposit.personDepositHolder;
-    this.organizationDepositHolder = baseDeposit.organizationDepositHolder;
-    this.depositReturnCount = depositReturnCount;
+    this.contactHolder = baseDeposit.contactHolder;
+    this.depositReturnCount = baseDeposit.depositReturns.length;
   }
 }
 
 function renderHolder({ row: { original } }: CellProps<DepositListEntry, string>) {
-  return original.personDepositHolder?.fullName || '';
+  if (original.contactHolder !== undefined) {
+    const holder = original.contactHolder;
+    if (holder.person !== undefined) {
+      return (
+        <Link to={`/contact/${holder.id}`}>
+          {formatNames([holder.person.firstName, holder.person.middleNames, holder.person.surname])}
+        </Link>
+      );
+    } else if (holder.organization !== undefined) {
+      return <Link to={`/contact/${holder.id}`}>{holder.organization.name}</Link>;
+    }
+  }
+
+  return '';
 }
 
 function depositActions(
@@ -54,6 +70,12 @@ function depositActions(
             icon={<FaTrash size={24} id={`delete-deposit-${index}`} title="delete deposit" />}
             onClick={() => original.id && onDelete(original.id)}
           ></Button>
+        )}
+        {hasClaim(Claims.LEASE_DELETE) && original.depositReturnCount > 0 && (
+          <TooltipIcon
+            toolTipId={`no-delete-tooltip-${original.id}`}
+            toolTip="A deposit with associated return(s) cannot be deleted. To delete this deposit first delete any associated return(s)."
+          />
         )}
         {hasClaim(Claims.LEASE_EDIT) && (
           <Button
@@ -87,7 +109,7 @@ export const getColumns = ({
 }: IPaymentColumnProps): ColumnWithProps<DepositListEntry>[] => {
   return [
     {
-      Header: 'Deposit Type',
+      Header: 'Deposit type',
       accessor: 'depositTypeDescription',
       maxWidth: 50,
     },
@@ -97,14 +119,14 @@ export const getColumns = ({
       minWidth: 150,
     },
     {
-      Header: 'Amount Paid',
+      Header: 'Amount paid',
       accessor: 'amountPaid',
       align: 'right',
       maxWidth: 40,
       Cell: renderMoney,
     },
     {
-      Header: 'Paid Date',
+      Header: 'Paid date',
       accessor: 'paidDate',
       align: 'right',
       maxWidth: 50,
@@ -112,7 +134,7 @@ export const getColumns = ({
     },
     {
       Header: 'Deposit holder',
-      accessor: 'personDepositHolder',
+      accessor: 'contactHolder',
       maxWidth: 60,
       Cell: renderHolder,
     },
@@ -126,6 +148,7 @@ export const getColumns = ({
 };
 
 const StyledIcons = styled(InlineFlexDiv)`
+  align-items: center;
   [id^='edit-deposit'] {
     color: ${props => props.theme.css.slideOutBlue};
   }

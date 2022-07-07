@@ -1,18 +1,27 @@
-import { emailContactMethods, phoneContactMethods } from 'constants/contactMethodType';
+import { EmailContactMethods, PhoneContactMethods } from 'constants/contactMethodType';
 import { AddressTypes } from 'constants/index';
 import {
   getDefaultAddress,
   getDefaultContactMethod,
-  ICreateOrganization,
-  ICreateOrganizationForm,
+  IBaseAddress,
   IEditableContactMethod,
   IEditableContactMethodForm,
+  IEditableOrganization,
+  IEditableOrganizationAddress,
+  IEditableOrganizationAddressForm,
+  IEditableOrganizationForm,
   IEditablePerson,
   IEditablePersonAddress,
   IEditablePersonAddressForm,
   IEditablePersonForm,
 } from 'interfaces/editable-contact';
-import { stringToBoolean, stringToNull, stringToTypeCode, typeCodeToString } from 'utils/formUtils';
+import { IContactPerson } from 'interfaces/IContact';
+import { Api_Organization, Api_OrganizationPerson } from 'models/api/Organization';
+import { fromTypeCode, stringToBoolean, stringToNull, toTypeCode } from 'utils/formUtils';
+import { formatFullName } from 'utils/personUtils';
+
+import { Api_Address } from './../../models/api/Address';
+import { Api_Person } from './../../models/api/Person';
 
 export function formPersonToApiPerson(formValues: IEditablePersonForm): IEditablePerson {
   // exclude form-specific fields from API payload object
@@ -35,6 +44,7 @@ export function formPersonToApiPerson(formValues: IEditablePersonForm): IEditabl
 
   const apiPerson = {
     ...restObject,
+    organization: restObject.organization ? restObject.organization : null,
     isDisabled: stringToBoolean(formValues.isDisabled),
     addresses,
     contactMethods,
@@ -75,9 +85,9 @@ export function apiPersonToFormPerson(person?: IEditablePerson) {
   return formPerson;
 }
 
-export function organizationCreateFormToApiOrganization(
-  formValues: ICreateOrganizationForm,
-): ICreateOrganization {
+export function formOrganizationToApiOrganization(
+  formValues: IEditableOrganizationForm,
+): IEditableOrganization {
   // exclude form-specific fields from API payload object
   const {
     mailingAddress,
@@ -98,11 +108,75 @@ export function organizationCreateFormToApiOrganization(
 
   const apiOrganization = {
     ...restObject,
+    isDisabled: stringToBoolean(formValues.isDisabled),
     addresses,
     contactMethods,
-  } as ICreateOrganization;
+    persons: undefined, // do not send the list of persons back to the server. will not be saved
+  } as IEditableOrganization;
 
   return apiOrganization;
+}
+
+export function apiOrganizationToFormOrganization(organization?: IEditableOrganization) {
+  if (!organization) return undefined;
+
+  // exclude api-specific fields from form values
+  const { addresses, contactMethods, persons, ...restObject } = organization;
+
+  // split address array into sub-types: MAILING, RESIDENTIAL, BILLING
+  const formAddresses = addresses?.map(apiAddressToFormAddress) || [];
+  const addressDictionary = toDictionary(formAddresses, 'addressTypeId');
+
+  // split contact methods array into phone and email values
+  const formContactMethods = contactMethods?.map(apiContactMethodToFormContactMethod) || [];
+  const emailContactMethods = formContactMethods.filter(isEmail);
+  const phoneContactMethods = formContactMethods.filter(isPhone);
+
+  // Format person API values - need full names here
+  const formPersonList: Partial<IContactPerson>[] = (persons || []).map(p => {
+    return { id: p.id, fullName: formatFullName(p) };
+  });
+
+  const formValues = {
+    ...restObject,
+    persons: formPersonList,
+    mailingAddress:
+      addressDictionary[AddressTypes.Mailing] ?? getDefaultAddress(AddressTypes.Mailing),
+    propertyAddress:
+      addressDictionary[AddressTypes.Residential] ?? getDefaultAddress(AddressTypes.Residential),
+    billingAddress:
+      addressDictionary[AddressTypes.Billing] ?? getDefaultAddress(AddressTypes.Billing),
+    emailContactMethods:
+      emailContactMethods.length > 0 ? emailContactMethods : [getDefaultContactMethod()],
+    phoneContactMethods:
+      phoneContactMethods.length > 0 ? phoneContactMethods : [getDefaultContactMethod()],
+  } as IEditableOrganizationForm;
+
+  return formValues;
+}
+
+export function getApiMailingAddress(
+  contact: IEditablePerson | IEditableOrganization,
+): IBaseAddress | undefined {
+  if (!contact) return undefined;
+
+  const addresses: IBaseAddress[] = contact.addresses || [];
+  return addresses.find(addr => addr.addressTypeId?.id === AddressTypes.Mailing);
+}
+
+export function getApiPersonOrOrgMailingAddress(
+  contact: Api_Person | Api_Organization,
+): Api_Address | undefined {
+  if (!contact) return undefined;
+
+  return (
+    (contact as Api_Person).personAddresses?.find(
+      addr => addr?.addressUsageType?.id === AddressTypes.Mailing && addr.address,
+    )?.address ??
+    (contact as Api_Organization).organizationAddresses?.find(
+      addr => addr?.addressUsageType?.id === AddressTypes.Mailing,
+    )?.address
+  );
 }
 
 function hasContactMethod(formContactMethod?: IEditableContactMethodForm): boolean {
@@ -129,29 +203,31 @@ function hasAddress(formAddress?: IEditablePersonAddressForm): boolean {
   );
 }
 
-function formAddressToApiAddress(formAddress: IEditablePersonAddressForm): IEditablePersonAddress {
+export function formAddressToApiAddress(
+  formAddress: IEditablePersonAddressForm | IEditableOrganizationAddressForm,
+) {
   return {
     ...formAddress,
-    countryId: parseInt(formAddress.countryId.toString()) || 0,
-    provinceId: parseInt(formAddress.provinceId.toString()) || 0,
-    addressTypeId: stringToTypeCode(formAddress.addressTypeId),
-  } as IEditablePersonAddress;
+    countryId: parseInt(formAddress?.countryId.toString()) || 0,
+    provinceId: parseInt(formAddress?.provinceId.toString()) || 0,
+    addressTypeId: toTypeCode(formAddress?.addressTypeId),
+  } as IEditablePersonAddress | IEditableOrganizationAddress;
 }
 
-function apiAddressToFormAddress(address?: IEditablePersonAddress) {
+export function apiAddressToFormAddress(address?: IBaseAddress) {
   if (!address) return undefined;
 
   return {
     ...address,
-    addressTypeId: typeCodeToString(address.addressTypeId),
-  } as IEditablePersonAddressForm;
+    addressTypeId: fromTypeCode(address?.addressTypeId),
+  } as IEditablePersonAddressForm | IEditableOrganizationAddressForm;
 }
 
 function formContactMethodToApiContactMethod(formContactMethod: IEditableContactMethodForm) {
   return {
     ...formContactMethod,
     value: stringToNull(formContactMethod.value),
-    contactMethodTypeCode: stringToTypeCode(formContactMethod.contactMethodTypeCode),
+    contactMethodTypeCode: toTypeCode(formContactMethod.contactMethodTypeCode),
   } as IEditableContactMethod;
 }
 
@@ -160,7 +236,7 @@ function apiContactMethodToFormContactMethod(contactMethod?: IEditableContactMet
 
   return {
     ...contactMethod,
-    contactMethodTypeCode: typeCodeToString(contactMethod.contactMethodTypeCode),
+    contactMethodTypeCode: fromTypeCode(contactMethod.contactMethodTypeCode),
   } as IEditableContactMethodForm;
 }
 
@@ -171,9 +247,27 @@ function toDictionary(array: any[], key: string) {
 }
 
 function isEmail(contactMethod?: IEditableContactMethodForm): boolean {
-  return !!contactMethod && emailContactMethods.includes(contactMethod.contactMethodTypeCode);
+  return !!contactMethod && EmailContactMethods.includes(contactMethod.contactMethodTypeCode);
 }
 
 function isPhone(contactMethod?: IEditableContactMethodForm): boolean {
-  return !!contactMethod && phoneContactMethods.includes(contactMethod.contactMethodTypeCode);
+  return !!contactMethod && PhoneContactMethods.includes(contactMethod.contactMethodTypeCode);
 }
+
+export const getDefaultContact = (organization?: {
+  organizationPersons?: Api_OrganizationPerson[];
+}): Api_Person | undefined => {
+  if (organization?.organizationPersons?.length === 1) {
+    return organization?.organizationPersons[0]?.person;
+  }
+  return undefined;
+};
+
+export const getPrimaryContact = (
+  primaryContactId: number,
+  organization?: {
+    organizationPersons?: Api_OrganizationPerson[];
+  },
+): Api_Person | undefined => {
+  return organization?.organizationPersons?.find(op => op.personId === primaryContactId)?.person;
+};

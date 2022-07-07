@@ -27,11 +27,6 @@ namespace Pims.Dal
         public IOrganizationRepository Organization { get { return _serviceProvider.GetService<IOrganizationRepository>(); } }
 
         /// <summary>
-        /// get - The user organization service (legacy).
-        /// </summary>
-        public IUserOrganizationService UserOrganization { get { return _serviceProvider.GetService<IUserOrganizationService>(); } }
-
-        /// <summary>
         /// get - The user calling the repository.
         /// </summary>
         public ClaimsPrincipal Principal { get; }
@@ -39,7 +34,7 @@ namespace Pims.Dal
         /// <summary>
         /// get - The property repository.
         /// </summary>
-        public IPropertyService Property { get { return _serviceProvider.GetService<IPropertyService>(); } }
+        public IPropertyRepository Property { get { return _serviceProvider.GetService<IPropertyRepository>(); } }
 
         /// <summary>
         /// get - The lookup repository.
@@ -54,7 +49,7 @@ namespace Pims.Dal
         /// <summary>
         /// get - The user repository.
         /// </summary>
-        public IUserService User { get { return _serviceProvider.GetService<IUserService>(); } }
+        public IUserRepository User { get { return _serviceProvider.GetService<IUserRepository>(); } }
 
         /// <summary>
         /// get - The role repository.
@@ -69,12 +64,12 @@ namespace Pims.Dal
         /// <summary>
         /// get - The access request repository.
         /// </summary>
-        public IAccessRequestService AccessRequest { get { return _serviceProvider.GetService<IAccessRequestService>(); } }
+        public IAccessRequestRepository AccessRequest { get { return _serviceProvider.GetService<IAccessRequestRepository>(); } }
 
         /// <summary>
         /// get - The tenant repository.
         /// </summary>
-        public ITenantService Tenant { get { return _serviceProvider.GetService<ITenantService>(); } }
+        public ITenantRepository Tenant { get { return _serviceProvider.GetService<ITenantRepository>(); } }
 
         /// <summary>
         /// get - The lease repository.
@@ -94,17 +89,37 @@ namespace Pims.Dal
         /// <summary>
         /// get - The contact repository.
         /// </summary>
-        public IContactService Contact { get { return _serviceProvider.GetService<IContactService>(); } }
+        public IContactRepository Contact { get { return _serviceProvider.GetService<IContactRepository>(); } }
 
         /// <summary>
         /// get - The insurance repository.
         /// </summary>
-        public IInsuranceService Insurance { get { return _serviceProvider.GetService<IInsuranceService>(); } }
+        public IInsuranceRepository Insurance { get { return _serviceProvider.GetService<IInsuranceRepository>(); } }
 
         /// <summary>
         /// get - The autocomplete repository.
         /// </summary>
         public IAutocompleteService Autocomplete { get { return _serviceProvider.GetService<IAutocompleteService>(); } }
+
+        /// <summary>
+        /// get - The research file repository.
+        /// </summary>
+        public IResearchFileRepository ResearchFile { get { return _serviceProvider.GetService<IResearchFileRepository>(); } }
+
+        /// <summary>
+        /// get - The research file repository.
+        /// </summary>
+        public IResearchFilePropertyRepository ResearchFileProperty { get { return _serviceProvider.GetService<IResearchFilePropertyRepository>(); } }
+
+        /// <summary>
+        /// get - The note repository.
+        /// </summary>
+        public INoteRepository Note { get { return _serviceProvider.GetService<INoteRepository>(); } }
+
+        /// <summary>
+        /// get - The entity-note repository.
+        /// </summary>
+        public IEntityNoteRepository EntityNote { get { return _serviceProvider.GetService<IEntityNoteRepository>(); } }
         #endregion
 
         #region Constructors

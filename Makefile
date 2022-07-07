@@ -292,8 +292,10 @@ backend-coverage: ## Generate coverage report for backend
 	@echo "$(P) Generate coverage report for backend"
 	@cd backend/tests/unit/api; dotnet build;
 	@cd backend/tests/unit/dal; dotnet build;
-	@cd backend; coverlet ./tests/unit/api/bin/Debug/net5.0/Pims.Api.Test.dll --target "dotnet" --targetargs "test ./ --no-build" -o "./tests/TestResults/coverage.json" --exclude "[*.Test]*" --exclude "[*]*Model" --exclude-by-attribute "CompilerGenerated" -f json
-	@cd backend; coverlet ./tests/unit/dal/bin/Debug/net5.0/Pims.Dal.Test.dll --target "dotnet" --targetargs "test ./ --no-build" -o "./tests/TestResults/coverage.xml" --exclude "[*.Test]*" --exclude "[*]*Model" --exclude-by-attribute "CompilerGenerated" --merge-with "tests/TestResults/coverage.json" -f cobertura
+	@cd backend/tests/unit/mockdal; dotnet build;
+	@cd backend; coverlet ./tests/unit/api/bin/Debug/net6.0/Pims.Api.Test.dll --target "dotnet" --targetargs "test ./ --no-build" -o "./tests/TestResults/coverage.json" --exclude "[*.Test]*" --exclude "[*]*Model" --exclude-by-attribute "CompilerGenerated" -f json
+	@cd backend; coverlet ./tests/unit/dal/bin/Debug/net6.0/Pims.Dal.Test.dll --target "dotnet" --targetargs "test ./ --no-build" -o "./tests/TestResults/coverage.xml" --exclude "[*.Test]*" --exclude "[*]*Model" --exclude-by-attribute "CompilerGenerated" --merge-with "tests/TestResults/coverage.json" -f cobertura
+	@cd backend; coverlet ./tests/unit/mockdal/bin/Debug/net6.0/Pims.Dal.Mock.Test.dll --target "dotnet" --targetargs "test ./ --no-build" -o "./tests/TestResults/coverage.xml" --exclude "[*.Test]*" --exclude "[*]*Model" --exclude-by-attribute "CompilerGenerated" --merge-with "tests/TestResults/coverage.json" -f cobertura
 	@cd backend; reportgenerator "-reports:./tests/TestResults/coverage.xml" "-targetdir:./tests/TestResults/Coverage" -reporttypes:Html
 	@cd backend; start ./tests/TestResults/Coverage/index.htm
 
@@ -305,5 +307,9 @@ env: ## Generate env files
 	@echo "$(P) Generate/Regenerate env files required for application (generated passwords only match if database .env file does not already exist)"
 	@./scripts/gen-env-files.sh;
 
-.PHONY: logs start destroy local setup restart refresh up down stop build rebuild clean client-test server-test pause-30 server-run db-clean db-drop db-seed db-refresh db-script db-scaffold npm-clean npm-refresh keycloak-sync convert backend-coverage frontend-coverage backend-test frontend-test env
+mayan-up: ## Calls the docker compose up for the mayan images
+	@echo "$(P) Create or start mayan-edms system"
+	@cd tools/mayan-edms; docker-compose up -d
+
+.PHONY: logs start destroy local setup restart refresh up down stop build rebuild clean client-test server-test pause-30 server-run db-clean db-drop db-seed db-refresh db-script db-scaffold npm-clean npm-refresh keycloak-sync convert backend-coverage frontend-coverage backend-test frontend-test env mayan-up
 

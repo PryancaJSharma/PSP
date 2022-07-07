@@ -46,13 +46,16 @@ namespace Pims.Dal.Repositories
         /// </summary>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public IEnumerable<PimsLease> Get(LeaseFilter filter)
+        public IEnumerable<PimsLease> Get(LeaseFilter filter, bool loadPayments = false)
         {
             this.User.ThrowIfNotAuthorized(Permissions.LeaseView);
             filter.ThrowIfNull(nameof(filter));
-            if (!filter.IsValid()) throw new ArgumentException("Argument must have a valid filter", nameof(filter));
+            if (!filter.IsValid())
+            {
+                throw new ArgumentException("Argument must have a valid filter", nameof(filter));
+            }
 
-            var query = this.Context.GenerateLeaseQuery(filter);
+            var query = this.Context.GenerateLeaseQuery(filter, loadPayments);
 
             var leases = query.OrderBy(l => l.LeaseId).ToArray();
 
@@ -64,11 +67,12 @@ namespace Pims.Dal.Repositories
             this.User.ThrowIfNotAuthorized(Permissions.LeaseView);
             return this.Context.PimsLeases.Where(l => l.LeaseId == id)?.Select(l => l.ConcurrencyControlNumber)?.FirstOrDefault() ?? throw new KeyNotFoundException();
         }
-
         public PimsLease Get(long id)
         {
             this.User.ThrowIfNotAuthorized(Permissions.LeaseView);
-            PimsLease lease = this.Context.PimsLeases.Include(l => l.PimsPropertyLeases)
+
+            PimsLease lease = this.Context.PimsLeases.AsSplitQuery()
+                .Include(l => l.PimsPropertyLeases)
                 .ThenInclude(p => p.Property)
                     .ThenInclude(p => p.Address)
                     .ThenInclude(p => p.Country)
@@ -76,6 +80,8 @@ namespace Pims.Dal.Repositories
                     .ThenInclude(p => p.Property)
                     .ThenInclude(p => p.Address)
                     .ThenInclude(p => p.ProvinceState)
+                .Include(l => l.PimsPropertyLeases)
+                    .ThenInclude(p => p.AreaUnitTypeCodeNavigation)
                 .Include(l => l.PimsPropertyLeases)
                     .ThenInclude(p => p.Property)
                     .ThenInclude(s => s.SurplusDeclarationTypeCodeNavigation)
@@ -103,7 +109,12 @@ namespace Pims.Dal.Repositories
                     .ThenInclude(o => o.Address)
                 .Include(l => l.PimsLeaseTenants)
                     .ThenInclude(t => t.Person)
+                    .ThenInclude(o => o.PimsPersonAddresses)
+                    .ThenInclude(o => o.AddressUsageTypeCodeNavigation)
+                .Include(l => l.PimsLeaseTenants)
+                    .ThenInclude(t => t.Person)
                     .ThenInclude(o => o.PimsContactMethods)
+                    .ThenInclude(cm => cm.ContactMethodTypeCodeNavigation)
 
                 .Include(l => l.PimsLeaseTenants)
                     .ThenInclude(t => t.Organization)
@@ -112,10 +123,21 @@ namespace Pims.Dal.Repositories
                 .Include(l => l.PimsLeaseTenants)
                     .ThenInclude(t => t.Organization)
                     .ThenInclude(o => o.PimsOrganizationAddresses)
+                    .ThenInclude(o => o.AddressUsageTypeCodeNavigation)
+                .Include(l => l.PimsLeaseTenants)
+                    .ThenInclude(t => t.Organization)
+                    .ThenInclude(o => o.PimsOrganizationAddresses)
                     .ThenInclude(o => o.Address)
                 .Include(l => l.PimsLeaseTenants)
                     .ThenInclude(t => t.Organization)
                     .ThenInclude(o => o.PimsContactMethods)
+                    .ThenInclude(cm => cm.ContactMethodTypeCodeNavigation)
+
+                .Include(l => l.PimsLeaseTenants)
+                    .ThenInclude(t => t.PrimaryContact)
+
+                .Include(l => l.PimsLeaseTenants)
+                    .ThenInclude(t => t.LessorTypeCodeNavigation)
 
                 .Include(t => t.PimsPropertyImprovements)
 
@@ -123,10 +145,21 @@ namespace Pims.Dal.Repositories
                     .ThenInclude(i => i.InsuranceTypeCodeNavigation)
 
                 .Include(l => l.PimsSecurityDeposits)
+                    .ThenInclude(s => s.SecurityDepositTypeCodeNavigation)
                 .Include(l => l.PimsSecurityDeposits)
-                    .ThenInclude(s => s.SecurityDepositTypeCodeNavigation)
-                .Include(l => l.PimsSecurityDepositReturns)
-                    .ThenInclude(s => s.SecurityDepositTypeCodeNavigation)
+                    .ThenInclude(s => s.PimsSecurityDepositHolder)
+                    .ThenInclude(h => h.Person)
+                .Include(l => l.PimsSecurityDeposits)
+                    .ThenInclude(s => s.PimsSecurityDepositHolder)
+                    .ThenInclude(h => h.Organization)
+                .Include(l => l.PimsSecurityDeposits)
+                    .ThenInclude(s => s.PimsSecurityDepositReturns)
+                    .ThenInclude(r => r.PimsSecurityDepositReturnHolder)
+                    .ThenInclude(h => h.Person)
+                .Include(l => l.PimsSecurityDeposits)
+                    .ThenInclude(s => s.PimsSecurityDepositReturns)
+                    .ThenInclude(r => r.PimsSecurityDepositReturnHolder)
+                    .ThenInclude(s => s.Organization)
 
                 .Include(l => l.PimsLeaseTerms)
                      .ThenInclude(t => t.LeasePmtFreqTypeCodeNavigation)
@@ -138,12 +171,12 @@ namespace Pims.Dal.Repositories
                 .Include(t => t.PimsLeaseTerms)
                     .ThenInclude(t => t.PimsLeasePayments)
                     .ThenInclude(t => t.LeasePaymentStatusTypeCodeNavigation)
+                .FirstOrDefault(l => l.LeaseId == id) ?? throw new KeyNotFoundException();
 
-                .Where(l => l.LeaseId == id)
-                .FirstOrDefault() ?? throw new KeyNotFoundException();
-
+            lease.LeasePurposeTypeCodeNavigation = this.Context.PimsLeasePurposeTypes.Single(type => type.LeasePurposeTypeCode == lease.LeasePurposeTypeCode);
             lease.PimsPropertyImprovements = lease.PimsPropertyImprovements.OrderBy(i => i.PropertyImprovementTypeCode).ToArray();
-            lease.PimsLeaseTerms = lease.PimsLeaseTerms.OrderBy(t => t.TermStartDate).ThenBy(t => t.LeaseTermId).Select(t => {
+            lease.PimsLeaseTerms = lease.PimsLeaseTerms.OrderBy(t => t.TermStartDate).ThenBy(t => t.LeaseTermId).Select(t =>
+            {
                 t.PimsLeasePayments = t.PimsLeasePayments.OrderBy(p => p.PaymentReceivedDate).ThenBy(p => p.LeasePaymentId).ToArray();
                 return t;
             }).ToArray();
@@ -160,12 +193,14 @@ namespace Pims.Dal.Repositories
         {
             this.User.ThrowIfNotAuthorized(Permissions.LeaseView);
             filter.ThrowIfNull(nameof(filter));
-            if (!filter.IsValid()) throw new ArgumentException("Argument must have a valid filter", nameof(filter));
+            if (!filter.IsValid())
+            {
+                throw new ArgumentException("Argument must have a valid filter", nameof(filter));
+            }
 
             var skip = (filter.Page - 1) * filter.Quantity;
             var query = this.Context.GenerateLeaseQuery(filter);
             var items = query
-                .OrderBy(l => l.LeaseId)
                 .Skip(skip)
                 .Take(filter.Quantity)
                 .ToArray();
@@ -196,16 +231,23 @@ namespace Pims.Dal.Repositories
                         (propertyLease.Property != null && propertyLease.Property.Pin != null && p.Pin == propertyLease.Property.Pin));
                 if (property?.PropertyId == null)
                 {
-                    throw new InvalidOperationException($"Property with PID {propertyLease?.Property?.Pid.ToString() ?? ""} does not exist");
+                    if (propertyLease?.Property?.Pid != -1)
+                    {
+                        throw new InvalidOperationException($"Property with PID {propertyLease?.Property?.Pid.ToString() ?? string.Empty} does not exist");
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Property with PIN {propertyLease?.Property?.Pin.ToString() ?? string.Empty} does not exist");
+                    }
                 }
                 if (property?.PimsPropertyLeases.Any(p => p.LeaseId != lease.Id) == true && !userOverride && newLeaseProperties)
                 {
                     var genericOverrideErrorMsg = $"is attached to L-File # {property.PimsPropertyLeases.FirstOrDefault().Lease.LFileNo}";
                     if (propertyLease?.Property?.Pin != null)
                     {
-                        throw new UserOverrideException($"PIN {propertyLease?.Property?.Pin.ToString() ?? ""} {genericOverrideErrorMsg}");
+                        throw new UserOverrideException($"PIN {propertyLease?.Property?.Pin.ToString() ?? string.Empty} {genericOverrideErrorMsg}");
                     }
-                    throw new UserOverrideException($"PID {propertyLease?.Property?.Pid.ToString() ?? ""} {genericOverrideErrorMsg}");
+                    throw new UserOverrideException($"PID {propertyLease?.Property?.Pid.ToString() ?? string.Empty} {genericOverrideErrorMsg}");
                 }
                 propertyLease.PropertyId = property.PropertyId;
                 propertyLease.Property = null; //Do not attempt to update the associated property, just refer to it by id.
@@ -225,7 +267,11 @@ namespace Pims.Dal.Repositories
         /// <returns></returns>
         public PimsLease Add(PimsLease lease, bool userOverride = false)
         {
-            if (lease == null) throw new ArgumentNullException(nameof(lease), "lease cannot be null.");
+            if (lease == null)
+            {
+                throw new ArgumentNullException(nameof(lease), "lease cannot be null.");
+            }
+
             this.User.ThrowIfNotAuthorized(Permissions.LeaseAdd);
 
             lease = AssociatePropertyLeases(lease, userOverride);
@@ -242,7 +288,11 @@ namespace Pims.Dal.Repositories
         /// <returns></returns>
         public PimsLease Update(PimsLease lease, bool commitTransaction = true)
         {
-            if (lease == null) throw new ArgumentNullException(nameof(lease), "lease cannot be null.");
+            if (lease == null)
+            {
+                throw new ArgumentNullException(nameof(lease), "lease cannot be null.");
+            }
+
             this.User.ThrowIfNotAuthorized(Permissions.LeaseEdit);
             var existingLease = this.Context.PimsLeases.Where(l => l.LeaseId == lease.LeaseId).FirstOrDefault()
                  ?? throw new KeyNotFoundException();
@@ -265,7 +315,10 @@ namespace Pims.Dal.Repositories
             this.User.ThrowIfNotAuthorized(Permissions.LeaseEdit);
             var existingLease = this.Context.PimsLeases.Include(l => l.PimsLeaseTenants).Where(l => l.LeaseId == leaseId).AsNoTracking().FirstOrDefault()
                  ?? throw new KeyNotFoundException();
-            if (existingLease.ConcurrencyControlNumber != rowVersion) throw new DbUpdateConcurrencyException("Unable to save. Please refresh your page and try again");
+            if (existingLease.ConcurrencyControlNumber != rowVersion)
+            {
+                throw new DbUpdateConcurrencyException("Unable to save. Please refresh your page and try again");
+            }
 
             this.Context.UpdateChild<PimsLease, long, PimsLeaseTenant>(l => l.PimsLeaseTenants, leaseId, pimsLeaseTenants.ToArray());
             this.Context.CommitTransaction();
@@ -284,7 +337,10 @@ namespace Pims.Dal.Repositories
             this.User.ThrowIfNotAuthorized(Permissions.LeaseEdit);
             var existingLease = this.Context.PimsLeases.Include(l => l.PimsPropertyImprovements).Where(l => l.LeaseId == leaseId).AsNoTracking().FirstOrDefault()
                  ?? throw new KeyNotFoundException();
-            if (existingLease.ConcurrencyControlNumber != rowVersion) throw new DbUpdateConcurrencyException("Unable to save. Please refresh your page and try again");
+            if (existingLease.ConcurrencyControlNumber != rowVersion)
+            {
+                throw new DbUpdateConcurrencyException("Unable to save. Please refresh your page and try again");
+            }
 
             this.Context.UpdateChild<PimsLease, long, PimsPropertyImprovement>(l => l.PimsPropertyImprovements, leaseId, pimsPropertyImprovements.ToArray());
             this.Context.CommitTransaction();
@@ -303,7 +359,11 @@ namespace Pims.Dal.Repositories
             this.User.ThrowIfNotAuthorized(Permissions.LeaseEdit);
             var existingLease = this.Context.PimsLeases.Include(l => l.PimsPropertyLeases).AsNoTracking().FirstOrDefault(l => l.LeaseId == leaseId)
                  ?? throw new KeyNotFoundException();
-            if (existingLease.ConcurrencyControlNumber != rowVersion) throw new DbUpdateConcurrencyException("Unable to save. Please refresh your page and try again");
+            if (existingLease.ConcurrencyControlNumber != rowVersion)
+            {
+                throw new DbUpdateConcurrencyException("Unable to save. Please refresh your page and try again");
+            }
+
             bool newLeaseProperties = pimsPropertyLeases.Any(p => !existingLease.PimsPropertyLeases.Any(xp => xp.PropertyId == p.PropertyId));
             existingLease.PimsPropertyLeases = pimsPropertyLeases;
             var leaseWithAssociatedProperties = AssociatePropertyLeases(existingLease, userOverride, newLeaseProperties);

@@ -20,29 +20,33 @@ namespace Pims.Dal
         /// </summary>
         /// <param name="repositories"></param>
         /// <returns></returns>
-        public static IServiceCollection AddPimsRepositories(this IServiceCollection repositories)
+        public static IServiceCollection AddPimsDalRepositories(this IServiceCollection repositories)
         {
             repositories.AddScoped<IPimsRepository, PimsRepository>();
-            repositories.AddScoped<Repositories.IPropertyService, Repositories.PropertyService>();
+            repositories.AddScoped<Repositories.IPropertyRepository, Repositories.PropertyRepository>();
             repositories.AddScoped<Repositories.IProvinceService, Repositories.ProvinceService>();
             repositories.AddScoped<Repositories.ILookupService, Repositories.LookupService>();
             repositories.AddScoped<Repositories.ISystemConstantService, Repositories.SystemConstantService>();
             repositories.AddScoped<Repositories.IPersonRepository, Repositories.PersonRepository>();
-            repositories.AddScoped<Repositories.IUserService, Repositories.UserService>();
+            repositories.AddScoped<Repositories.IUserRepository, Repositories.UserRepository>();
             repositories.AddScoped<Repositories.IRoleService, Repositories.RoleService>();
             repositories.AddScoped<Repositories.IClaimService, Repositories.ClaimService>();
-            repositories.AddScoped<Repositories.IAccessRequestService, Repositories.AccessRequestService>();
-            repositories.AddScoped<Repositories.ITenantService, Repositories.TenantService>();
+            repositories.AddScoped<Repositories.IAccessRequestRepository, Repositories.AccessRequestRepository>();
+            repositories.AddScoped<Repositories.ITenantRepository, Repositories.TenantRepository>();
             repositories.AddScoped<Repositories.ILeaseRepository, Repositories.LeaseRepository>();
-            repositories.AddScoped<Repositories.IContactService, Repositories.ContactService>();
-            repositories.AddScoped<Repositories.IInsuranceService, Repositories.InsuranceService>();
+            repositories.AddScoped<Repositories.IContactRepository, Repositories.ContactRepository>();
+            repositories.AddScoped<Repositories.IInsuranceRepository, Repositories.InsuranceRepository>();
             repositories.AddScoped<Repositories.IAutocompleteService, Repositories.AutocompleteService>();
-            repositories.AddScoped<Repositories.IUserOrganizationService, Repositories.UserOrganizationService>();
             repositories.AddScoped<Repositories.IOrganizationRepository, Repositories.OrganizationRepository>();
             repositories.AddScoped<Repositories.ILeaseTermRepository, Repositories.LeaseTermRepository>();
             repositories.AddScoped<Repositories.ISecurityDepositRepository, Repositories.SecurityDepositRepository>();
             repositories.AddScoped<Repositories.ILeasePaymentRepository, Repositories.LeasePaymentRepository>();
             repositories.AddScoped<Repositories.ISecurityDepositReturnRepository, Repositories.SecurityDepositReturnRepository>();
+            repositories.AddScoped<Repositories.IResearchFileRepository, Repositories.ResearchFileRepository>();
+            repositories.AddScoped<Repositories.IResearchFilePropertyRepository, Repositories.ResearchFilePropertyRepository>();
+            repositories.AddScoped<Repositories.IDocumentTypeRepository, Repositories.DocumentTypeRepository>();
+            repositories.AddScoped<Repositories.INoteRepository, Repositories.NoteRepository>();
+            repositories.AddScoped<Repositories.IEntityNoteRepository, Repositories.EntityNoteRepository>();
             return repositories; // TODO: Use reflection to find all Repositories.
         }
 
@@ -51,16 +55,20 @@ namespace Pims.Dal
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
-        public static IServiceCollection AddPimsServices(this IServiceCollection services)
+        public static IServiceCollection AddPimsDalServices(this IServiceCollection services)
         {
             services.AddScoped<IPimsService, PimsService>();
             services.AddScoped<ILeaseService, LeaseService>();
+            services.AddScoped<ILeaseReportsService, LeaseReportsService>();
             services.AddScoped<ILeaseTermService, LeaseTermService>();
-            services.AddScoped<Services.ILeasePaymentService, Services.LeasePaymentService>();
+            services.AddScoped<ILeasePaymentService, LeasePaymentService>();
             services.AddScoped<ISecurityDepositService, SecurityDepositService>();
             services.AddScoped<ISecurityDepositReturnService, SecurityDepositReturnService>();
-            services.AddScoped<Services.IPersonService, Services.PersonService>();
-            services.AddScoped<Services.IOrganizationService, Services.OrganizationService>();
+            services.AddScoped<IPersonService, PersonService>();
+            services.AddScoped<IOrganizationService, OrganizationService>();
+            services.AddScoped<IResearchFileService, ResearchFileService>();
+            services.AddScoped<IPropertyService, PropertyService>();
+            services.AddScoped<ICoordinateTransformService, CoordinateTransformService>();
             return services; // TODO: Use reflection to find all Repositories.
         }
 
@@ -73,7 +81,10 @@ namespace Pims.Dal
         /// <returns></returns>
         public static IServiceCollection AddPimsContext(this IServiceCollection repositories, IHostEnvironment env, string connectionString)
         {
-            if (string.IsNullOrWhiteSpace(connectionString)) throw new ArgumentException("Argument is required and cannot be null, empty or whitespace.", nameof(connectionString));
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new ArgumentException("Argument is required and cannot be null, empty or whitespace.", nameof(connectionString));
+            }
 
             repositories.AddDbContext<PimsContext>(options =>
             {

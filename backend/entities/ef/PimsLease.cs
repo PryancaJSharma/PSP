@@ -30,7 +30,6 @@ namespace Pims.Dal.Entities
             PimsLeaseTerms = new HashSet<PimsLeaseTerm>();
             PimsPropertyImprovements = new HashSet<PimsPropertyImprovement>();
             PimsPropertyLeases = new HashSet<PimsPropertyLease>();
-            PimsSecurityDepositReturns = new HashSet<PimsSecurityDepositReturn>();
             PimsSecurityDeposits = new HashSet<PimsSecurityDeposit>();
         }
 
@@ -125,16 +124,12 @@ namespace Pims.Dal.Entities
         [Required]
         [Column("IS_EXPIRED")]
         public bool? IsExpired { get; set; }
-        [Required]
         [Column("HAS_PHYSICAL_FILE")]
         public bool? HasPhysicalFile { get; set; }
-        [Required]
         [Column("HAS_DIGITAL_FILE")]
         public bool? HasDigitalFile { get; set; }
-        [Required]
         [Column("HAS_PHYSICIAL_LICENSE")]
         public bool? HasPhysicialLicense { get; set; }
-        [Required]
         [Column("HAS_DIGITAL_LICENSE")]
         public bool? HasDigitalLicense { get; set; }
         [Column("CONCURRENCY_CONTROL_NUMBER")]
@@ -213,8 +208,6 @@ namespace Pims.Dal.Entities
         public virtual ICollection<PimsPropertyImprovement> PimsPropertyImprovements { get; set; }
         [InverseProperty(nameof(PimsPropertyLease.Lease))]
         public virtual ICollection<PimsPropertyLease> PimsPropertyLeases { get; set; }
-        [InverseProperty(nameof(PimsSecurityDepositReturn.Lease))]
-        public virtual ICollection<PimsSecurityDepositReturn> PimsSecurityDepositReturns { get; set; }
         [InverseProperty(nameof(PimsSecurityDeposit.Lease))]
         public virtual ICollection<PimsSecurityDeposit> PimsSecurityDeposits { get; set; }
     }

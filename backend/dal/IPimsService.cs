@@ -3,7 +3,7 @@ namespace Pims.Dal.Services
 {
     public interface IPimsService
     {
-        #region Leases
+        #region Services
         ILeaseTermService LeaseTermService { get; }
         ILeasePaymentService LeasePaymentService { get; }
         ILeaseService LeaseService { get; }
@@ -11,6 +11,9 @@ namespace Pims.Dal.Services
         ISecurityDepositReturnService SecurityDepositReturnService { get; }
         IPersonService PersonService { get; }
         IOrganizationService OrganizationService { get; }
+        ILeaseReportsService LeaseReportsService { get; }
+        IResearchFileService ResearchFileService { get; }
+        IPropertyService PropertyService { get; }
         #endregion
     }
 }

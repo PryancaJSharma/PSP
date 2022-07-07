@@ -3,16 +3,18 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pims.Api.Areas.Admin.Controllers;
 using Pims.Api.Models;
-using Pims.Core.Comparers;
 using Pims.Core.Test;
 using Pims.Dal;
 using Pims.Dal.Entities.Models;
+using Pims.Dal.Exceptions;
 using Pims.Dal.Security;
 using Xunit;
 using Entity = Pims.Dal.Entities;
-using Model = Pims.Api.Areas.Admin.Models.AccessRequest;
+using Model = Pims.Api.Models.Concepts;
+using FluentAssertions;
+using System.Linq;
 
-namespace PimsApi.Test.Admin.Controllers
+namespace Pims.Api.Test.Admin.Controllers
 {
     [Trait("category", "unit")]
     [Trait("category", "api")]
@@ -44,13 +46,12 @@ namespace PimsApi.Test.Admin.Controllers
             service.Setup(m => m.AccessRequest.Get(It.IsAny<AccessRequestFilter>())).Returns(paged);
 
             // Act
-            var result = controller.GetPage(1, 10, null, null, null, null, null);
+            var result = controller.GetPage(1, 10);
 
             // Assert
             var actionResult = Assert.IsType<JsonResult>(result);
             Assert.Null(actionResult.StatusCode);
             var actualResult = Assert.IsType<PageModel<Model.AccessRequestModel>>(actionResult.Value);
-            Assert.Equal(mapper.Map<Model.AccessRequestModel[]>(accessRequests), actualResult.Items, new DeepPropertyCompare());
             service.Verify(m => m.AccessRequest.Get(It.IsAny<AccessRequestFilter>()), Times.Once());
         }
 
@@ -76,8 +77,6 @@ namespace PimsApi.Test.Admin.Controllers
             var actionResult = Assert.IsType<JsonResult>(result);
             Assert.Null(actionResult.StatusCode);
             var actualResult = Assert.IsType<PageModel<Model.AccessRequestModel>>(actionResult.Value);
-            Assert.Equal(mapper.Map<Model.AccessRequestModel[]>(accessRequests), actualResult.Items,
-                new DeepPropertyCompare());
             service.Verify(m => m.AccessRequest.Get(It.IsAny<AccessRequestFilter>()), Times.Once());
         }
 
@@ -102,9 +101,53 @@ namespace PimsApi.Test.Admin.Controllers
             // Assert
             var actionResult = Assert.IsType<JsonResult>(result);
             Assert.Null(actionResult.StatusCode);
-            var actualResult = Assert.IsType<PageModel<Model.AccessRequestModel>>(actionResult.Value);
-            Assert.Equal(mapper.Map<Model.AccessRequestModel[]>(accessRequests), actualResult.Items, new DeepPropertyCompare());
+            var actualResult = Assert.IsType<PageModel<Pims.Api.Models.Concepts.AccessRequestModel>>(actionResult.Value);
             service.Verify(m => m.AccessRequest.Get(It.IsAny<AccessRequestFilter>()), Times.Once());
+        }
+
+        [Fact]
+        public void GetAccessRequest_ById_Success()
+        {
+            // Arrange
+            var helper = new TestHelper();
+            var controller = helper.CreateController<AccessRequestController>(Permissions.AdminUsers);
+
+            var mapper = helper.GetService<IMapper>();
+            var service = helper.GetService<Mock<IPimsRepository>>();
+            var accessRequest1 = EntityHelper.CreateAccessRequest(1);
+            service.Setup(m => m.AccessRequest.Get(It.IsAny <long>())).Returns(accessRequest1);
+
+            // Act
+            var result = controller.GetAccessRequest(accessRequest1.AccessRequestId);
+
+            // Assert
+            var actionResult = Assert.IsType<JsonResult>(result);
+            Assert.Null(actionResult.StatusCode);
+            var actualResult = Assert.IsType<Pims.Api.Models.Concepts.AccessRequestModel>(actionResult.Value);
+            service.Verify(m => m.AccessRequest.Get(It.IsAny<long>()), Times.Once());
+        }
+
+        [Fact]
+        public void GetAccessRequests_Delete_Success()
+        {
+            // Arrange
+            var helper = new TestHelper();
+            var controller = helper.CreateController<AccessRequestController>(Permissions.AdminUsers);
+
+            var mapper = helper.GetService<IMapper>();
+            var service = helper.GetService<Mock<IPimsRepository>>();
+            var accessRequest1 = EntityHelper.CreateAccessRequest(1);
+            service.Setup(m => m.AccessRequest.Delete(It.IsAny<Entity.PimsAccessRequest>())).Returns(accessRequest1);
+
+            // Act
+            var result = controller.Delete(accessRequest1.AccessRequestId, mapper.Map<Model.AccessRequestModel>(accessRequest1));
+
+            // Assert
+            var actionResult = Assert.IsType<JsonResult>(result);
+            Assert.Null(actionResult.StatusCode);
+            var actualResult = Assert.IsType<Model.AccessRequestModel>(actionResult.Value);
+            mapper.Map<Model.AccessRequestModel>(accessRequest1).Should().BeEquivalentTo(actualResult);
+            service.Verify(m => m.AccessRequest.Delete(It.IsAny<Entity.PimsAccessRequest>()), Times.Once());
         }
         #endregion
     }

@@ -1,3 +1,4 @@
+using System.Linq;
 using Entity = Pims.Dal.Entities;
 
 namespace Pims.Core.Test
@@ -14,7 +15,7 @@ namespace Pims.Core.Test
         /// <returns></returns>
         public static Entity.PimsAccessRequest CreateAccessRequest(long id)
         {
-            return CreateAccessRequest(id, null, null, null);
+            return CreateAccessRequest(id, null, null, null, null, null);
         }
 
         /// <summary>
@@ -25,26 +26,31 @@ namespace Pims.Core.Test
         /// <param name="role"></param>
         /// <param name="organization"></param>
         /// <returns></returns>
-        public static Entity.PimsAccessRequest CreateAccessRequest(long id, Entity.PimsUser user, Entity.PimsRole role, Entity.PimsOrganization organization)
+        public static Entity.PimsAccessRequest CreateAccessRequest(long id, Entity.PimsUser user = null, Entity.PimsRole role = null, Entity.PimsOrganization organization = null, Entity.PimsRegion region = null, Entity.PimsAccessRequestStatusType status = null)
         {
             user ??= EntityHelper.CreateUser("test");
-            role ??= EntityHelper.CreateRole("Real Estate Manager");
+            role ??= user.PimsUserRoles.FirstOrDefault().Role ?? EntityHelper.CreateRole("test role");
+            region ??= user?.PimsRegionUsers?.FirstOrDefault()?.RegionCodeNavigation ?? new Entity.PimsRegion() { Id = 1 };
+            status ??= new Entity.PimsAccessRequestStatusType() { AccessRequestStatusTypeCode = "Received" };
             var accessRequest = new Entity.PimsAccessRequest()
             {
                 AccessRequestId = id,
                 UserId = user.Id,
                 User = user,
                 RoleId = role.Id,
-                Role = role
+                Role = role,
+                RegionCode = region.Code,
+                RegionCodeNavigation = region,
+                AccessRequestStatusTypeCode = status.AccessRequestStatusTypeCode,
+                AccessRequestStatusTypeCodeNavigation = status,
             };
-
-            organization ??= EntityHelper.CreateOrganization(id, "test", EntityHelper.CreateOrganizationType("Type 1"), EntityHelper.CreateOrganizationIdentifierType("Identifier 1"), EntityHelper.CreateAddress(id));
+            organization ??= user.PimsUserOrganizations.FirstOrDefault().Organization ?? EntityHelper.CreateOrganization(1, "test org");
             accessRequest.PimsAccessRequestOrganizations.Add(new Entity.PimsAccessRequestOrganization()
             {
                 AccessRequestId = id,
                 AccessRequest = accessRequest,
                 OrganizationId = organization.Id,
-                Organization = organization
+                Organization = organization,
             });
 
             return accessRequest;

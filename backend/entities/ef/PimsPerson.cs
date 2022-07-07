@@ -14,10 +14,12 @@ namespace Pims.Dal.Entities
         public PimsPerson()
         {
             PimsContactMethods = new HashSet<PimsContactMethod>();
-            PimsLeaseTenants = new HashSet<PimsLeaseTenant>();
+            PimsLeaseTenantPeople = new HashSet<PimsLeaseTenant>();
+            PimsLeaseTenantPrimaryContacts = new HashSet<PimsLeaseTenant>();
             PimsPersonAddresses = new HashSet<PimsPersonAddress>();
             PimsPersonOrganizations = new HashSet<PimsPersonOrganization>();
             PimsProperties = new HashSet<PimsProperty>();
+            PimsResearchFiles = new HashSet<PimsResearchFile>();
             PimsSecurityDepositHolders = new HashSet<PimsSecurityDepositHolder>();
             PimsSecurityDepositReturnHolders = new HashSet<PimsSecurityDepositReturnHolder>();
             PimsUsers = new HashSet<PimsUser>();
@@ -51,6 +53,8 @@ namespace Pims.Dal.Entities
         [Column("ADDRESS_COMMENT")]
         [StringLength(2000)]
         public string AddressComment { get; set; }
+        [Column("USE_ORGANIZATION_ADDRESS")]
+        public bool? UseOrganizationAddress { get; set; }
         [Required]
         [Column("IS_DISABLED")]
         public bool? IsDisabled { get; set; }
@@ -96,13 +100,17 @@ namespace Pims.Dal.Entities
         [InverseProperty(nameof(PimsContactMethod.Person))]
         public virtual ICollection<PimsContactMethod> PimsContactMethods { get; set; }
         [InverseProperty(nameof(PimsLeaseTenant.Person))]
-        public virtual ICollection<PimsLeaseTenant> PimsLeaseTenants { get; set; }
+        public virtual ICollection<PimsLeaseTenant> PimsLeaseTenantPeople { get; set; }
+        [InverseProperty(nameof(PimsLeaseTenant.PrimaryContact))]
+        public virtual ICollection<PimsLeaseTenant> PimsLeaseTenantPrimaryContacts { get; set; }
         [InverseProperty(nameof(PimsPersonAddress.Person))]
         public virtual ICollection<PimsPersonAddress> PimsPersonAddresses { get; set; }
         [InverseProperty(nameof(PimsPersonOrganization.Person))]
         public virtual ICollection<PimsPersonOrganization> PimsPersonOrganizations { get; set; }
         [InverseProperty(nameof(PimsProperty.PropertyManager))]
         public virtual ICollection<PimsProperty> PimsProperties { get; set; }
+        [InverseProperty(nameof(PimsResearchFile.RequestorNameNavigation))]
+        public virtual ICollection<PimsResearchFile> PimsResearchFiles { get; set; }
         [InverseProperty(nameof(PimsSecurityDepositHolder.Person))]
         public virtual ICollection<PimsSecurityDepositHolder> PimsSecurityDepositHolders { get; set; }
         [InverseProperty(nameof(PimsSecurityDepositReturnHolder.Person))]

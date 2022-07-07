@@ -13,7 +13,7 @@ namespace Pims.Dal.Repositories
     /// <summary>
     /// TenantService class, provides a service layer to interact with tenants within the datasource.
     /// </summary>
-    public class TenantService : BaseRepository<PimsTenant>, ITenantService
+    public class TenantRepository : BaseRepository<PimsTenant>, ITenantRepository
     {
         #region Variables
         #endregion
@@ -28,7 +28,7 @@ namespace Pims.Dal.Repositories
         /// <param name="options"></param>
         /// <param name="logger"></param>
         /// <returns></returns>
-        public TenantService(PimsContext dbContext, ClaimsPrincipal user, IPimsRepository service, ILogger<TenantService> logger, IMapper mapper) : base(dbContext, user, service, logger, mapper) { }
+        public TenantRepository(PimsContext dbContext, ClaimsPrincipal user, IPimsRepository service, ILogger<TenantRepository> logger, IMapper mapper) : base(dbContext, user, service, logger, mapper) { }
         #endregion
 
         #region Methods
@@ -49,11 +49,18 @@ namespace Pims.Dal.Repositories
         /// <returns></returns>
         public PimsTenant UpdateTenant(PimsTenant tenant)
         {
-            if (tenant == null) throw new ArgumentNullException(nameof(tenant));
+            if (tenant == null)
+            {
+                throw new ArgumentNullException(nameof(tenant));
+            }
+
             this.User.ThrowIfNotAuthorized(Permissions.SystemAdmin);
             var originalTenant = this.Context.PimsTenants.FirstOrDefault(t => t.Code == tenant.Code);
 
-            if (originalTenant == null) throw new KeyNotFoundException();
+            if (originalTenant == null)
+            {
+                throw new KeyNotFoundException();
+            }
 
             originalTenant.Name = tenant.Name;
             originalTenant.Description = tenant.Description;

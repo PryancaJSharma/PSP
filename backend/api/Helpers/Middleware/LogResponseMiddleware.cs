@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading.Tasks;
@@ -67,8 +66,12 @@ namespace Pims.Api.Helpers.Middleware
 
             using (_logger.BeginScope("HTTP Response"))
             {
-                if (!Log.IsEnabled(Serilog.Events.LogEventLevel.Debug)) _logger.LogInformation($"HTTP Response {context.Request.Method} user:{context.User.GetDisplayName()} {context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}{System.Environment.NewLine}");
-                _logger.LogDebug($"HTTP Response {context.Request.Method} user:{context.User.GetDisplayName()} {context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}" + (String.IsNullOrEmpty(body) ? String.Empty : $"{System.Environment.NewLine}Body: {body}"));
+                if (!Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+                {
+                    _logger.LogInformation($"HTTP Response {context.Request.Method} user:{context.User.GetDisplayName()} {context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}{System.Environment.NewLine}");
+                }
+                _logger.LogDebug($"HTTP Response {context.Request.Method} user:{context.User.GetDisplayName()} {context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}");
+                _logger.LogTrace(string.IsNullOrEmpty(body) ? string.Empty : $"{System.Environment.NewLine}Body: {body}");
             }
 
             await responseBody.CopyToAsync(originalBodyStream);

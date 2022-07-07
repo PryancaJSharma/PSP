@@ -1,3 +1,4 @@
+using System;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pims.Api.Policies;
@@ -5,9 +6,8 @@ using Pims.Dal;
 using Pims.Dal.Entities;
 using Pims.Dal.Security;
 using Swashbuckle.AspNetCore.Annotations;
-using System;
 using Entity = Pims.Dal.Entities;
-using Model = Pims.Api.Areas.Admin.Models.Claim;
+using Model = Pims.Api.Models.Concepts;
 
 namespace Pims.Api.Areas.Admin.Controllers
 {
@@ -55,9 +55,20 @@ namespace Pims.Api.Areas.Admin.Controllers
         [SwaggerOperation(Tags = new[] { "admin-claim" })]
         public IActionResult GetClaims(int page = 1, int quantity = 10, string name = null)
         {
-            if (page < 1) page = 1;
-            if (quantity < 1) quantity = 1;
-            if (quantity > 50) quantity = 50;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (quantity < 1)
+            {
+                quantity = 1;
+            }
+
+            if (quantity > 50)
+            {
+                quantity = 50;
+            }
 
             var paged = _pimsService.Claim.Get(page, quantity, name);
             var result = _mapper.Map<Api.Models.PageModel<Model.ClaimModel>>(paged);

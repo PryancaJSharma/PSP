@@ -1,3 +1,6 @@
+using Pims.Api.Models;
+using Pims.Api.Models.Concepts;
+
 namespace Pims.Api.Areas.Lease.Models.Lease
 {
     public class TenantModel : Api.Models.BaseAppModel
@@ -10,5 +13,8 @@ namespace Pims.Api.Areas.Lease.Models.Lease
         public long? OrganizationId { get; set; }
         public OrganizationModel Organization { get; set; }
         public string Note { get; set; }
+        public PersonModel PrimaryContact { get; set; }
+        public long? PrimaryContactId { get; set; }
+        public TypeModel<string> LessorType { get; set; }
     }
 }

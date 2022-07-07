@@ -1,4 +1,4 @@
-import { Button } from 'components/common/form';
+import { Button } from 'components/common/buttons/Button';
 import { InlineFlexDiv } from 'components/common/styles';
 import TooltipIcon from 'components/common/TooltipIcon';
 import {
@@ -122,6 +122,14 @@ const termActions = (
               icon={<FaTrash size={24} id={`delete-term-${index}`} title="delete term" />}
               onClick={() => original.id && onDelete(original)}
             ></Button>
+          )}
+        {hasClaim(Claims.LEASE_DELETE) &&
+          (original.payments.length > 0 ||
+            original.statusTypeCode?.id === LeaseTermStatusTypes.EXERCISED) && (
+            <TooltipIcon
+              toolTipId={`no-delete-tooltip-term-${original.id}`}
+              toolTip="An exercised term cannot be deleted. To delete this term ensure that there are no payments recorded for it, and the term has not been exercised."
+            />
           )}
       </StyledIcons>
     );
@@ -261,6 +269,7 @@ export const getColumns = ({
 };
 
 const StyledIcons = styled(InlineFlexDiv)`
+  align-items: center;
   [id^='edit-term'] {
     color: ${props => props.theme.css.slideOutBlue};
   }

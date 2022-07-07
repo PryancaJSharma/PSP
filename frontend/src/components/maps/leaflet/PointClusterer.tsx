@@ -1,35 +1,29 @@
 import './PointClusterer.scss';
 
-import { AddressTypes } from 'constants/index';
-import { PropertyTypes } from 'constants/propertyTypes';
 import { MAX_ZOOM } from 'constants/strings';
 import { BBox } from 'geojson';
 import { useApiProperties } from 'hooks/pims-api';
 import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
 import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
 import { IProperty } from 'interfaces';
-import L, { LatLngLiteral } from 'leaflet';
-import queryString from 'query-string';
+import L, { LatLng, LatLngLiteral } from 'leaflet';
+import { find } from 'lodash';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FeatureGroup, Marker, Polyline, useMap } from 'react-leaflet';
-import { useDispatch } from 'react-redux';
-import { useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { IPropertyDetail, storeProperty } from 'store/slices/properties';
 import Supercluster from 'supercluster';
 
 import useSupercluster from '../hooks/useSupercluster';
 import { useFilterContext } from '../providers/FIlterProvider';
-import { PropertyPopUpContext } from '../providers/PropertyPopUpProvider';
+import { SelectedPropertyContext } from '../providers/SelectedPropertyContext';
 import { ICluster, PointFeature } from '../types';
-import { getMarkerIcon, pointToLayer, zoomToCluster } from './mapUtils';
+import { getDraftIcon, getMarkerIcon, pointToLayer, zoomToCluster } from './mapUtils';
 import SelectedPropertyMarker from './SelectedPropertyMarker/SelectedPropertyMarker';
 import { Spiderfier } from './Spiderfier';
 
 export type PointClustererProps = {
   points: Array<PointFeature>;
   draftPoints: Array<PointFeature>;
-  selected?: IPropertyDetail | null;
   bounds?: BBox;
   zoom: number;
   minZoom?: number;
@@ -39,7 +33,7 @@ export type PointClustererProps = {
   /** When you click a cluster at the bottom zoom level we spiderfy it so you can see all of its markers. Default: true */
   spiderfyOnMaxZoom?: boolean;
   /** Action when a marker is clicked */
-  onMarkerClick: () => void;
+  onMarkerClick: (property: IProperty) => void;
   tilesLoaded: boolean;
 };
 
@@ -52,47 +46,38 @@ export const convertToProperty = (
   latitude?: number,
   longitude?: number,
 ): IProperty | null => {
-  if ([PropertyTypes.Land, PropertyTypes.Subdivision].includes(property.propertyTypeId)) {
-    return {
-      pid: property.PID,
-      latitude: latitude,
-      longitude: longitude,
-      propertyTypeId: property.propertyTypeId,
-      address: {
-        id: property.ADDRESS_ID,
-        addressTypeId: AddressTypes.Mailing,
-        municipality: property.MUNICIPALITY_NAME,
-        provinceId: 1,
-        province: property.PROVINCE_STATE_CODE,
-        streetAddress1: property.STREET_ADDRESS_1,
-        postal: property.POSTAL_CODE,
-        country: property.COUNTRY_CODE,
-      },
-      pin: property.PIN,
-      landArea: property.LAND_AREA,
-      landLegalDescription: property.LAND_LEGAL_DESCRIPTION,
-      name: property.NAME,
-      description: property.DESCRIPTION,
-      isSensitive: property.IS_SENSITIVE,
-      isOwned: property.IS_OWNED,
-      encumbranceReason: property.ENCUMBRANCE_REASON,
-      isPropertyOfInterest: property.IS_PROPERTY_OF_INTEREST,
-      isVisibleToOtherAgencies: property.IS_VISIBLE_TO_OTHER_AGENCIES,
-      areaUnit: property.PROPERTY_AREA_UNIT_TYPE_CODE,
-      classificationId: property.PROPERTY_CLASSIFICATION_TYPE_CODE,
-      id: property.PROPERTY_ID,
-      status: property.PROPERTY_STATUS_TYPE_CODE,
-      tenure: property.PROPERTY_TENURE_TYPE_CODE,
-      regionId: property.REGION_CODE,
-      zoning: property.ZONING,
-      zoningPotential: property.ZONING_POTENTIAL,
-    };
-  } else if (
-    [PropertyTypes.DraftBuilding, PropertyTypes.DraftLand].includes(property.propertyTypeId)
-  ) {
-    return property;
-  }
-  return null;
+  return {
+    pid: property.PID,
+    latitude: latitude,
+    longitude: longitude,
+    address: {
+      id: property.ADDRESS_ID,
+      municipality: property.MUNICIPALITY_NAME,
+      provinceId: 1,
+      province: property.PROVINCE_STATE_CODE,
+      streetAddress1: property.STREET_ADDRESS_1,
+      postal: property.POSTAL_CODE,
+      country: property.COUNTRY_CODE,
+    },
+    pin: property.PIN,
+    landArea: property.LAND_AREA,
+    landLegalDescription: property.LAND_LEGAL_DESCRIPTION,
+    name: property.NAME,
+    description: property.DESCRIPTION,
+    isSensitive: property.IS_SENSITIVE,
+    isOwned: property.IS_OWNED,
+    encumbranceReason: property.ENCUMBRANCE_REASON,
+    isPropertyOfInterest: property.IS_PROPERTY_OF_INTEREST,
+    isVisibleToOtherAgencies: property.IS_VISIBLE_TO_OTHER_AGENCIES,
+    areaUnit: property.PROPERTY_AREA_UNIT_TYPE_CODE,
+    classificationId: property.PROPERTY_CLASSIFICATION_TYPE_CODE,
+    id: property.PROPERTY_ID,
+    status: property.PROPERTY_STATUS_TYPE_CODE,
+    tenure: property.PROPERTY_TENURE_TYPE_CODE,
+    regionId: property.REGION_CODE,
+    zoning: property.ZONING,
+    zoningPotential: property.ZONING_POTENTIAL,
+  };
 };
 
 /**
@@ -107,7 +92,6 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
   onMarkerClick,
   minZoom,
   maxZoom,
-  selected,
   zoomToBoundsOnClick = true,
   spiderfyOnMaxZoom = true,
   tilesLoaded,
@@ -117,8 +101,8 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
   const featureGroupRef = useRef<L.FeatureGroup>(null);
   const draftFeatureGroupRef = useRef<L.FeatureGroup>(null);
   const filterState = useFilterContext();
-  const location = useLocation();
-  const { parcelId, buildingId } = queryString.parse(location.search);
+  const selectedPropertyContext = React.useContext(SelectedPropertyContext);
+  const { propertyInfo: selected } = selectedPropertyContext;
 
   const [currentSelected, setCurrentSelected] = useState(selected);
   const [currentCluster, setCurrentCluster] = useState<
@@ -156,24 +140,6 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
       return [];
     }
   }, [currentCluster, supercluster]);
-
-  //Optionally create a new pin to represent the active property if not already displayed in a spiderfied cluster.
-  useDeepCompareEffect(() => {
-    if (!currentClusterIds.includes(+(selected?.propertyDetail?.id ?? 0))) {
-      setCurrentSelected(selected);
-      if (!!parcelId && !!selected?.propertyDetail) {
-        mapInstance.setView(
-          [
-            selected?.propertyDetail?.latitude as number,
-            selected?.propertyDetail?.longitude as number,
-          ],
-          Math.max(MAX_ZOOM, mapInstance.getZoom()),
-        );
-      }
-    } else {
-      setCurrentSelected(undefined);
-    }
-  }, [selected, setCurrentSelected]);
 
   // Register event handlers to shrink and expand clusters when map is interacted with
   const componentDidMount = useCallback(() => {
@@ -237,6 +203,23 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
     const isDraft = draftPoints.length > 0;
     if (draftFeatureGroupRef.current && isDraft) {
       const group: L.FeatureGroup = draftFeatureGroupRef.current;
+
+      const validLatLngs = draftPoints.map(p => {
+        const latLng: LatLng = {
+          lat: p.geometry?.coordinates[1],
+          lng: p.geometry?.coordinates[0],
+        } as LatLng;
+        return latLng;
+      });
+
+      //react-leaflet is not displaying removed drafts but the layer is still present, this
+      //causes the fitbounds calculation to be off. Fixed by manually cleaning up layers referencing removed drafts.
+      group.getLayers().forEach((l: any) => {
+        if (!find(validLatLngs, vl => (l._latlng as LatLng).equals(vl))) {
+          group.removeLayer(l);
+        }
+      });
+
       const groupBounds = group.getBounds();
 
       if (groupBounds.isValid()) {
@@ -254,12 +237,7 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
       const group: L.FeatureGroup = featureGroupRef.current;
       const groupBounds = group.getBounds();
 
-      if (
-        groupBounds.isValid() &&
-        filterState.changed &&
-        !selected?.propertyDetail &&
-        tilesLoaded
-      ) {
+      if (groupBounds.isValid() && filterState.changed && !selected && tilesLoaded) {
         filterState.setChanged(false);
         mapInstance.fitBounds(groupBounds, { maxZoom: zoom > MAX_ZOOM ? zoom : MAX_ZOOM });
       }
@@ -270,35 +248,48 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
     }
   }, [featureGroupRef, mapInstance, clusters, tilesLoaded]);
 
-  const popUpContext = React.useContext(PropertyPopUpContext);
-
-  const dispatch = useDispatch();
   const { getProperty } = useApiProperties();
   const fetchProperty = React.useCallback(
-    (propertyTypeId: number, id: number, latLng: LatLngLiteral) => {
-      popUpContext.setLoading(true);
+    (id: number, latLng: LatLngLiteral) => {
+      selectedPropertyContext.setLoading(true);
       getProperty(id)
         .then(apiProperty => {
+          const propertyData = apiProperty.data;
+          const propertyAddress = propertyData.address;
+          const tenure = propertyData?.tenure !== undefined ? propertyData?.tenure[0] : undefined;
           const property: IProperty = {
-            ...apiProperty.data,
+            ...propertyData,
+            pid: propertyData.pid || '',
+            status: propertyData.status?.id,
+            dataSource: propertyData.dataSource?.id,
+            tenure: tenure?.id,
+            address: {
+              provinceId: propertyAddress?.province?.id || 0,
+              streetAddress1: propertyAddress?.streetAddress1 || '',
+              streetAddress2: propertyAddress?.streetAddress2,
+              streetAddress3: propertyAddress?.streetAddress3,
+              municipality: propertyAddress?.municipality || '',
+              postal: propertyAddress?.postal || '',
+            },
+            areaUnit: propertyData.areaUnit?.id,
+            landArea: propertyData.landArea || 0,
+            landLegalDescription: propertyData.landLegalDescription || '',
             latitude: latLng.lat,
             longitude: latLng.lng,
           };
-          popUpContext.setPropertyInfo(property);
-          dispatch(storeProperty(property));
+          selectedPropertyContext.setPropertyInfo(property);
         })
         .catch(() => {
           toast.error('Unable to load property details, refresh the page and try again.');
         })
         .finally(() => {
-          popUpContext.setLoading(false);
+          selectedPropertyContext.setLoading(false);
         });
     },
-    [dispatch, getProperty, popUpContext],
+    [getProperty, selectedPropertyContext],
   );
 
   const keycloak = useKeycloakWrapper();
-
   return (
     <>
       <FeatureGroup ref={featureGroupRef}>
@@ -353,20 +344,18 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
                     latitude,
                     longitude,
                   );
-                  onMarkerClick(); //open information slideout
+                  convertedProperty && onMarkerClick(convertedProperty); //open information slideout
+                  setCurrentSelected(convertedProperty);
                   if (keycloak.canUserViewProperty(cluster.properties as IProperty)) {
                     convertedProperty?.id
-                      ? fetchProperty(cluster.properties.propertyTypeId, convertedProperty.id, {
+                      ? fetchProperty(convertedProperty.id, {
                           lat: latitude,
                           lng: longitude,
                         })
                       : toast.dark('This property is invalid, unable to view details');
                   } else {
-                    //sets this pin as currently selected
-                    dispatch(storeProperty(convertedProperty as IProperty));
-                    popUpContext.setPropertyInfo(convertedProperty);
+                    selectedPropertyContext.setPropertyInfo(convertedProperty);
                   }
-                  popUpContext.setPropertyTypeId(cluster.properties.propertyTypeId);
                 },
               }}
             />
@@ -381,10 +370,7 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
             key={index}
             position={m.position}
             //highlight pin if currently selected
-            icon={getMarkerIcon(
-              m,
-              (m.properties.id as number) === (selected?.propertyDetail?.id as number),
-            )}
+            icon={getMarkerIcon(m, (m.properties.id as number) === (selected?.id as number))}
             eventHandlers={{
               click: () => {
                 //sets this pin as currently selected
@@ -393,21 +379,16 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
                   m.geometry.coordinates[1],
                   m.geometry.coordinates[0],
                 );
-                dispatch(storeProperty(convertedProperty));
-                onMarkerClick(); //open information slideout
+
                 if (keycloak.canUserViewProperty(m.properties as IProperty)) {
-                  convertedProperty?.id && convertedProperty.propertyTypeId
-                    ? fetchProperty(m.properties.propertyTypeId, convertedProperty.id, {
+                  convertedProperty?.id
+                    ? fetchProperty(convertedProperty.id, {
                         lat: convertedProperty.latitude ?? 0,
                         lng: convertedProperty.longitude ?? 0,
                       })
                     : toast.dark('This property is invalid, unable to view details');
-                } else {
-                  popUpContext.setPropertyInfo(
-                    convertToProperty(m.properties, m.position.lat, m.position.lng),
-                  );
+                  convertedProperty && onMarkerClick(convertedProperty); //open information slideout
                 }
-                popUpContext.setPropertyTypeId(m.properties.propertyTypeId);
               },
             }}
           />
@@ -421,27 +402,19 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
         {/**
          * render selected property marker, auto opens the property popup
          */}
-        {!!selected?.propertyDetail &&
-          selected?.propertyDetail?.id === currentSelected?.propertyDetail?.id &&
-          !currentClusterIds.includes(+(selected?.propertyDetail?.id as number)) && (
+        {!!selected &&
+          selected?.id === currentSelected?.id &&
+          !currentClusterIds.includes(+(selected?.id as number)) && (
             <SelectedPropertyMarker
-              {...selected.propertyDetail}
+              {...selected}
               icon={getMarkerIcon({ properties: selected } as any, true)}
-              className={
-                Number(parcelId ?? buildingId) === selected?.propertyDetail?.id
-                  ? 'active-selected'
-                  : ''
-              }
-              position={[
-                selected.propertyDetail.latitude as number,
-                selected.propertyDetail.longitude as number,
-              ]}
+              className={'active-selected'}
+              position={[selected.latitude as number, selected.longitude as number]}
               map={mapInstance}
               eventHandlers={{
                 click: () => {
-                  popUpContext.setPropertyInfo(selected.propertyDetail);
-                  popUpContext.setPropertyTypeId(selected.propertyTypeId ?? PropertyTypes.Land);
-                  onMarkerClick();
+                  selectedPropertyContext.setPropertyInfo(selected);
+                  selected && onMarkerClick(selected);
                 },
               }}
             />
@@ -450,16 +423,19 @@ export const PointClusterer: React.FC<PointClustererProps> = ({
       <FeatureGroup ref={draftFeatureGroupRef}>
         {draftPoints.map((draftPoint, index) => {
           //render all of the unclustered draft markers.
-          const [longitude, latitude] = draftPoint.geometry.coordinates;
-          return (
-            <Marker
-              {...(draftPoint.properties as any)}
-              key={index}
-              position={[latitude, longitude]}
-              icon={getMarkerIcon(draftPoint)}
-              zIndexOffset={500}
-            />
-          );
+          if (draftPoint?.geometry?.coordinates) {
+            const [longitude, latitude] = draftPoint.geometry.coordinates;
+            return (
+              <Marker
+                {...(draftPoint.properties as any)}
+                key={index}
+                position={[latitude, longitude]}
+                icon={getDraftIcon((index + 1).toString())}
+                zIndexOffset={500}
+              ></Marker>
+            );
+          }
+          return <></>;
         })}
       </FeatureGroup>
     </>
